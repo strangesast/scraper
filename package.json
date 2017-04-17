@@ -1,0 +1,25 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "concurrently --kill-others \"http-server\" \"karma start karma.conf.js\""
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^0.9.0",
+    "jasmine-core": "^2.5.2",
+    "jasmine-spec-reporter": "^4.0.0",
+    "karma": "^1.6.0",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-jasmine-html-reporter": "^0.2.2",
+    "karma-webpack": "^2.0.3",
+    "webpack": "^2.4.1"
+  },
+  "dependencies": {
+    "concurrently": "^3.4.0"
+  }
+}
