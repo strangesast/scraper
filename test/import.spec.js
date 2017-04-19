@@ -1,16 +1,34 @@
 import importFile from '../src/import';
 import { Observable } from 'rxjs/Rx';
 
+function formatBytes(bytes,decimals) {
+  if(bytes == 0) return '0 Bytes';
+  var k = 1000,
+  dm = decimals + 1 || 3,
+  sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+  i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function print(rows, p) {
+  console.log(`${ rows } rows, ${ (Math.floor(p*10000)/100).toFixed(2) }%`)
+};
 describe('import function', () => {
   it('should timeout', async(finished) => {
     //let start = performance.now();
     let url = '/data/example.dmp';
     let request = new Request(url);
     let response = await fetch(request);
+    let contentLength = Number(response.headers.get('content-length'));
+
+    console.log(formatBytes(contentLength));
 
     let readableStream = response.body;
 
+    let j = 0;
+
     let stream = readify(readableStream)
+      .do(x => j+=x.length)
       .concatMap(text => {
         let i = text.lastIndexOf('\n') + 1;
         return Observable.of(text.substring(0, i), text.substring(i));
@@ -19,20 +37,60 @@ describe('import function', () => {
       .bufferCount(2)
       .map(pair => pair.join(''));
 
-    let rows = stream.concatMap(string => Observable.from(splitify(string))).concat([null]);
+    let i = 0;
+    let rows = stream.concatMap(string => Observable.from(splitify(string))).do(x => i++).concat([null]);
+
+    let counter = setInterval(() => print(i, j/contentLength), 1000);
 
     let root = rootParser();
     root.next();
+
+    let dict;
+    let remaining;
+    let win;
+    let props = [];
+
+
     let subscription = rows.subscribe(row => {
       let done, value;
       ({ done, value } = root.next(row));
 
-      if (done) {
-        // should be an error if unexpected
-        let largestPhotoObject = value.values.filter(f => f.object && f.object.PhotoFile).sort((a, b) => a.object.PhotoFile < a.object.PhotoFile)[0];
-        if (largestPhotoObject) {
-          window.open('data:image/jpg;base64,'+largestPhotoObject.object.PhotoFile);
+      if( value && value.dictionary ) {
+        dict = value.dictionary;
+        remaining = Object.keys(dict);
+      }
+
+      if (value && value.object && remaining) {
+        for (let key of Object.keys(value.object)) {
+          if (props.indexOf(key) == -1) {
+            props.push(key);
+          }
         }
+      }
+
+      /*
+      if (value && value.object && value.object.PhotoFile && value.object.PhotoFile.length > 1e4) {
+        if (win) {
+          win.close();
+        }
+        win = window.open('data:image/jpg;base64,'+value.object.PhotoFile);
+      }
+      */
+
+      if (done) {
+        print(i, j/contentLength);
+        console.log('cleared');
+        console.log(props);
+        clearInterval(counter);
+        // should be an error if unexpected
+        /*
+        let largestPhotoObjects = value.values.filter(f => f.object && f.object.PhotoFile).map(f => f.object.PhotoFile).sort((a, b) => a.length > b.length ? -1 : 1).slice(0, 4);
+        if (largestPhotoObjects.length) {
+          for (let PhotoFile of largestPhotoObjects) {
+            window.open('data:image/jpg;base64,'+PhotoFile);
+          }
+        }
+        */
         subscription.unsubscribe();
       }
     });
@@ -55,7 +113,7 @@ describe('import function', () => {
 });
 
 let headerRe = /^\'\s*(.+)?$/;
-let keyRe = /(\w+)\s\:\s?(.*)?$/;
+let keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
 
 function* rootParser() {
   let line = yield;
@@ -65,25 +123,27 @@ function* rootParser() {
   let values = [];
   while (line != null) {
     // header
-    let match;
+    let key, value, match;
     if (match = headerRe.exec(line)) {
-      let text = match[1];
-      let keyMatch = keyRe.exec(text);
+      value = match[1];
+      let keyMatch = keyRe.exec(value);
       if (keyMatch) {
-        let [key, value] = keyMatch.slice(1);
+        [key, value] = keyMatch.slice(1);
         headers[key] = value;
       } else {
-        headers.push(text);
+        headers.push(value);
       }
 
     } else if (match = keyRe.exec(line)) {
-      let [key, value] = match.slice(1);
+      [key, value] = match.slice(1);
       switch (key) {
         case 'Dictionary':
-          value = { dictionary: yield *dictionaryParser('NAME') };
+          let dictionary = yield *dictionaryParser('NAME');
+          value = { dictionary };
           break;
         case 'Object':
-          value = { object: yield *objectParser() };
+          let object = yield *objectParser();
+          value = { object };
           break;
         case 'Path':
           value = { path: value };
@@ -93,7 +153,7 @@ function* rootParser() {
       }
       values.push(value);
     }
-    line = yield res;
+    line = yield value;
   }
   return { values, headers };
 }
@@ -113,6 +173,7 @@ function* dictionaryParser(keyName) {
           if (keyIndex == -1) throw new Error('incompatible dict key');
         }
       }
+      line = yield { header };
     } else {
       let row = parseRow(line);
       let obj = row.reduce((res, field, i) => {
@@ -125,8 +186,8 @@ function* dictionaryParser(keyName) {
       } else {
         result.push(obj);
       }
+      line = yield obj;
     }
-    line = yield;
   }
   return result;
 }
@@ -165,7 +226,7 @@ function* objectParser() {
         case 'BlobTemplate':
           break;
         case 'FullName':
-          let [first, last] = value.split(',').map(s => s.trim());
+          let [last, first] = value.split(',').map(s => s.trim());
           value = { first, last };
           break;
         // dates
@@ -184,8 +245,9 @@ function* objectParser() {
           break;
       }
       result[key] = value;
+      line = yield value;
     } // else do nothing / error
-    line = yield;
+    line = yield null;
   }
   return result;
 }
@@ -198,12 +260,12 @@ function* photoFileParser() {
   let firstLine = line = yield;
   let len = firstLine.length;
 
-  let string = line;
+  let string = line.trim();
   do {
     line = yield;
-    string+=line;
+    string+=line.trim();
 
-  } while (line.length == len) // should always be '80';
+  } while (line.length == len) // should always be '82';
 
   return new Buffer(string, 'hex').toString('base64');
 }
@@ -250,14 +312,16 @@ function* breakify(string, length=2) {
 }
 
 // better than split
-function* splitify(string, seperator='\n') {
+function* splitify(string, seperator='\r\n') {
   let size = string.length;
   let pos = 0;
   do {
-    let i = string.indexOf(seperator, pos+1);
-    i = i > -1 ? i : size;
-    // may not want to trim
-    yield string.substring(pos, i).trim();
-    pos = i+1;
+    let i = string.indexOf(seperator, pos);
+    if (i == -1) {
+      yield string.substring(pos);
+    } else if (i > 0) {
+      yield string.substring(pos, i);
+    }
+    pos = i+seperator.length;
   } while (pos < size);
 }
