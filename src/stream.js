@@ -28,17 +28,23 @@ export function streamObjectsFromBlob(blob) {
 export function parseSaveStream(stream) {
   let parsed = parseStream(stream);
   let objects = parsed.filter(x => x && x.object).pluck('object').share();
+
+  /*
   let [withPhotos, withoutPhotos] = objects.partition(x => !!x.PhotoFile);
 
   let cleaned = Observable.zip(withPhotos, shrinkCropPhoto(withPhotos.pluck('PhotoFile'))).map(([ob, data]) => {
     ob.PhotoFile = data;
     return ob;
   });
+  */
+
+  return { objects };
 
   // stream of saved ids
   let ids = init('scraper', 1, [{ name: 'dump', keyPath: 'id', autoIncrement: true }], true).flatMap(db => {
     // accumulate objects for indexeddb storage
-    let groups = Observable.merge(cleaned, withoutPhotos).map(data => {
+    //let groups = Observable.merge(cleaned, withoutPhotos).map(data => {
+    let groups = objects.map(data => {
       return { data };
     }).bufferTime(1000).filter(x => x.length > 0);
 
@@ -48,7 +54,7 @@ export function parseSaveStream(stream) {
 
   });
 
-  return { ids, objects: cleaned };
+  return { ids, objects }; // { objects: cleaned }
 
 }
 

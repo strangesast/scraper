@@ -6,40 +6,58 @@ import * as d3 from 'd3';
 
 let MyWorker = require('worker-loader!./worker');
 let worker = new MyWorker();
-console.log('worker', worker);
 
+/*
 worker.onmessage = function(evt) {
   console.log('from worker', evt.data);
   setTimeout(() => worker.postMessage(evt.data), 1000);
 }
-worker.postMessage('toast!')
+*/
+//worker.postMessage('toast!')
 
 var fileInput = document.getElementById('file-upload');
+
+let fileStream = Observable.fromEvent(fileInput, 'change')
+  .pluck('target', 'files')
+  .filter(arr => arr && arr.length)
+  .map(arr => {
+    let file = arr[0];
+
+    let { objects, ids, progress } = streamObjectsFromBlob(file);
+
+    let url = URL.createObjectURL(file);
+    worker.postMessage({ command: 'start', value: url });
+    return Observable.fromEvent(worker, 'message').pluck('data').takeWhile(({ result }) => result != null);
+  })
+  .exhaust()
+  .subscribe(file => console.log(file));
+
 
 var image = document.querySelector('img');
 
 
 function stripObject(obj) {
   // TODO: better checking
-  console.log(obj);
   return obj.FullName || { first: obj.FirstName, last: obj.LastName };
 }
 
-Observable.fromEvent(fileInput, 'change').pluck('target', 'files').concatMap(files => {
-  return Observable.from(files);
-}).concatMap(file => {
-  let { objects, ids, progress } = streamObjectsFromBlob(file);
+//Observable.fromEvent(fileInput, 'change').pluck('target', 'files').concatMap(files => {
+//  return Observable.from(files);
+//}).concatMap(file => {
+//  let { objects, ids, progress } = streamObjectsFromBlob(file);
+//
+//  return Observable.zip(ids, objects).map(([id, object]) => ({ id, object: stripObject(object) })).take(100).bufferTime(1000);
+//
+//  //return Observable.combineLatest(progress.map(formatPercentage), objects.mapTo(1).scan((a, b) => a+b, 0)).map(p => p.join(', '))
+//
+//}).subscribe(res => {
+//  console.log(res);
+//  //people.push(...res);
+//  //calculateGraph();
+//}, (err) => console.error(err));
 
-  return Observable.zip(ids, objects).map(([id, object]) => ({ id, object: stripObject(object) })).take(100).bufferTime(1000);
 
-  //return Observable.combineLatest(progress.map(formatPercentage), objects.mapTo(1).scan((a, b) => a+b, 0)).map(p => p.join(', '))
-
-}).subscribe(res => {
-  people.push(...res);
-  calculateGraph();
-}, (err) => console.error(err));
-
-
+/*
 var svg = d3.select(document.body.querySelector('svg'));
 var width = +svg.attr('width');
 var height = +svg.attr('height');
@@ -62,38 +80,44 @@ var simulation = d3.forceSimulation()
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
   .force('charge', bodyForce)
-  .force('center', d3.forceCenter(width/2, height/2));
+  .force('center', d3.forceCenter(width/2, height/2))
+  .alphaTarget(1)
+  .on('tick', ticked);
 
 let people = [];
 
-var node;
-var nd = svg.append('g')
-  .attr('class', 'nodes')
-  .selectAll('circle')
+
+let g = svg.append('g');
+var node = g.append('g').selectAll('circle');
+
+calculateGraph();
 
 function calculateGraph() {
-  node = nd.data(people, ({ id }) => id)
-    .enter()
-    .append('circle')
+  node = node.data(people, ({ id }) => id)
+
+  node.exit().remove()
+
+  node = node.enter().append('circle')
     .attr('r', circleRadius-borderRadius/2)
     .attr('fill', (d) => color(+d.SiteCode))
     .call(d3.drag()
       .on('start', dragstarted)
       .on('drag', dragged)
-      .on('end', dragended));
+      .on('end', dragended))
+    .merge(node)
 
-  node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
+  //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
 
-  simulation.nodes(people).on('tick', ticked);
+  simulation.nodes(people)//.on('tick', ticked);
+  simulation.alpha(1).restart();
 }
 
 function ticked() {
-  node.attr('cx', (d) => d.x);
-  node.attr('cy', (d) => d.y);
+  node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
 
 function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(0.1).restart();
+  if (!d3.event.active) simulation.alphaTarget(1).restart();
   d.fx = d.x;
   d.fy = d.y;
 }
@@ -108,3 +132,4 @@ function dragended(d) {
   d.fx = null;
   d.fy = null;
 }
+*/
