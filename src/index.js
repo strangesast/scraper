@@ -4,6 +4,16 @@ import { Observable } from 'rxjs';
 import { streamObjectsFromBlob, formatPercentage } from '../src/stream';
 import * as d3 from 'd3';
 
+let MyWorker = require('worker-loader!./worker');
+let worker = new MyWorker();
+console.log('worker', worker);
+
+worker.onmessage = function(evt) {
+  console.log('from worker', evt.data);
+  setTimeout(() => worker.postMessage(evt.data), 1000);
+}
+worker.postMessage('toast!')
+
 var fileInput = document.getElementById('file-upload');
 
 var image = document.querySelector('img');

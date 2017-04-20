@@ -7,10 +7,13 @@ const config = require('./package.json');
 const extractLESS = new ExtractTextPlugin('./dist/bundle.css');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: {
+    index: './src/index.js',
+    worker: './src/worker.js'
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js'
+    filename: '[name].js'
   },
   module: {
     rules: [
@@ -24,7 +27,9 @@ module.exports = {
     ]
   },
   plugins: [
+    /*
     new webpack.optimize.UglifyJsPlugin(),
+    */
     new HtmlWebpackPlugin({
       template: './src/index.html',
       title: config.name
