@@ -9,6 +9,22 @@ export function streamObjectsFromURL(url, updateInterval) {
 }
 
 
+export function streamObjectsFromBlob(blob) {
+  /*
+  let size = blob.size;
+  let blobStream = Observable.from(breakify(blob, incr)).share();
+
+  let progress = blobStream.pluck('pos').map(pos => Math.min(pos/size, 1));
+
+  let stream = blobStream.pluck('blob').do(x => console.log(x));
+
+  return Object.assign(parseSaveStream(stream), { progress });
+  */
+  let url = URL.createObjectURL(blob);
+  return streamObjectsFromURL(url);
+}
+
+
 export function parseSaveStream(stream) {
   let parsed = parseStream(stream);
   let objects = parsed.filter(x => x && x.object).pluck('object').share();
@@ -52,7 +68,7 @@ export function streamRequest(request, updateInterval=100) {
 
   // current position in response, fraction
   let clength = bytes.scan((tot, string) => tot + string.length, 0);
-  let progress = length.combineLatest(clength.sampleTime(updateInterval)).map(([a, b]) => b/a);
+  let progress = length.combineLatest(clength.sampleTime(updateInterval)).map(([a, b]) => b/a).concat(Observable.of(1));
 
   // split up stream into whole lines of response
   let stream = bytes
@@ -94,6 +110,15 @@ function readify(readableStream) {
       reader.cancel('Subscription canceled');
     };
   });
+}
+
+
+export function* breakify(blob, incr=1e5) {
+  let size = blob.size;
+  let pos = 0;
+  do {
+    yield ({ blob: blob.slice(pos, pos+=incr), pos });
+  } while (pos < size);
 }
 
 

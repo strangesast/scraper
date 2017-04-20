@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs';
-let headerRe = /^\'\s*(.+)?$/;
-let keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
+
+const headerRe = /^\'\s*(.+)?$/;
+const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
 
 
 export function parseStream(stream) {
@@ -172,6 +173,7 @@ export function* parseAreaLinks() {
   let line = yield;
   return [];
 }
+
 
 // better than split
 export function* splitify(string, seperator='\r\n') {
