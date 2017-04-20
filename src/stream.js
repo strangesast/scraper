@@ -1,7 +1,43 @@
 import { Observable } from 'rxjs';
+import { init, save } from './save';
+import { parseStream, shrinkCropPhoto } from './parse';
+
+export function streamObjectsFromURL(url, updateInterval) {
+  let { stream, progress } = streamRequest(new Request(url), updateInterval);
+
+  return Object.assign(parseSaveStream(stream), { progress });
+}
 
 
-export function streamRequest(request, minInterval=100, formatted=true) {
+export function parseSaveStream(stream) {
+  let parsed = parseStream(stream);
+  let objects = parsed.filter(x => x && x.object).pluck('object').share();
+  let [withPhotos, withoutPhotos] = objects.partition(x => !!x.PhotoFile);
+
+  let cleaned = Observable.zip(withPhotos, shrinkCropPhoto(withPhotos.pluck('PhotoFile'))).map(([ob, data]) => {
+    ob.PhotoFile = data;
+    return ob;
+  });
+
+  // stream of saved ids
+  let ids = init('scraper', 1, [{ name: 'dump', keyPath: 'id', autoIncrement: true }], true).flatMap(db => {
+    // accumulate objects for indexeddb storage
+    let groups = Observable.merge(cleaned, withoutPhotos).map(data => {
+      return { data };
+    }).bufferTime(1000).filter(x => x.length > 0);
+
+    return groups.concatMap(group => {
+      return save(db, 'dump', group);
+    });
+
+  });
+
+  return { ids, objects: cleaned };
+
+}
+
+
+export function streamRequest(request, updateInterval=100) {
   // use fetch for net. request
   let response = Observable.fromPromise(fetch(request));
 
@@ -16,10 +52,7 @@ export function streamRequest(request, minInterval=100, formatted=true) {
 
   // current position in response, fraction
   let clength = bytes.scan((tot, string) => tot + string.length, 0);
-  let progress = length.combineLatest(clength.throttleTime(minInterval)).map(([a, b]) => b/a);
-  if (formatted) {
-    progress = progress.map(formatPercentage);
-  }
+  let progress = length.combineLatest(clength.sampleTime(updateInterval)).map(([a, b]) => b/a);
 
   // split up stream into whole lines of response
   let stream = bytes
@@ -58,13 +91,13 @@ function readify(readableStream) {
     // return cancel function
     return () => {
       canceled = true;
-      console.log('canceled');
       reader.cancel('Subscription canceled');
     };
   });
 }
 
-function formatBytes(bytes,decimals) {
+
+export function formatBytes(bytes,decimals) {
   if(bytes == 0) return '0 Bytes';
   var k = 1000,
   dm = decimals + 1 || 3,
@@ -73,6 +106,7 @@ function formatBytes(bytes,decimals) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-function formatPercentage(p) {
-  return `${ (Math.floor(p*10000)/100).toFixed(2) }%`;
+
+export function formatPercentage(p) {
+  return `${ (Math.floor(p*1e6)/1e4).toFixed(4) }%`;
 }

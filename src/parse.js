@@ -187,3 +187,33 @@ export function* splitify(string, seperator='\r\n') {
     pos = i+seperator.length;
   } while (pos < size);
 }
+
+
+export function shrinkCropPhoto(stream, minSize=1e4, maxDim=180) {
+  let image = new Image();
+  let canvas = document.createElement('canvas');
+  let ctx = canvas.getContext('2d');
+
+  return stream.concatMap(data => {
+    if (!data) {
+      return Observable.of(null);
+    } if (data.length < minSize) {
+      return Observable.of('data:image/png;base64,' + data);
+    }
+
+    let load = Observable.fromEvent(image, 'load').take(1);
+    image.src = 'data:image/png;base64,' + data;
+
+    return load.map(() => {
+      let [width, height] = [image.width, image.height];
+      let min = Math.min(width, height);
+      let size = Math.min(min, maxDim);
+      let dx = (width - min)/2;
+      let dy = (height - min)/2;
+      canvas.width = canvas.height = size;
+      ctx.drawImage(image, dx, dy, min, min, 0, 0, size, size);
+      let dataURL = canvas.toDataURL();
+      return dataURL;
+    });
+  });
+};
