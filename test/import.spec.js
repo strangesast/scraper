@@ -16,7 +16,14 @@ describe('import function', () => {
     let win;
     let props = [];
 
-    let subscription = parseStream(stream).subscribe( value => {
+    //let [withImage, withoutImage] = parseStream(stream).partition(value => value && value.object && value.object.PhotoFile);
+    let parsed = parseStream(stream);
+
+
+    let subscription = parsed.subscribe(value => {
+    //let subscription = parseStream(stream).subscribe(value => {
+
+    //let subscription = Observable.merge(withImage, withoutImage).subscribe( value => {
       // Get unique props on object
       /*
       if (value && value.object && remaining) {

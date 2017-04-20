@@ -58,6 +58,7 @@ function readify(readableStream) {
     // return cancel function
     return () => {
       canceled = true;
+      console.log('canceled');
       reader.cancel('Subscription canceled');
     };
   });
