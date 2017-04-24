@@ -96,6 +96,9 @@ function readify(readableStream) {
     let decoder = new TextDecoder();
     let canceled = false;
 
+    // check out Observable.fromCallback
+    // reader = Observable.fromCallback(reader.read);
+    // reader().subscribe
     function fn() {
       reader.read().then(({ done, value }) => {
         if (canceled) {

@@ -5,12 +5,39 @@ const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
 
 
 export function parseStream(stream) {
+  // check out Observable.wrap
   let root = parseRoot();
   root.next();
   return stream
     .concatMap(string => Observable.from(splitify(string)))
     .concat([null])
     .map(row => root.next(row)).pluck('value');
+}
+
+function* breakLines(seperator='\r\n') {
+  let res, buf = '', i;
+  while (true) {
+    buf += yield res;
+    i = buf.lastIndexOf(seperator);
+    if (i > -1) {
+      res = buf.substring(0, i).split(seperator);
+      buf = buf.substring(i+seperator.length);
+    } else {
+      res = [];
+    }
+  }
+};
+
+export function breakStreamIntoFullLines(textStream, seperator) {
+  let g = breakLines(seperator);
+  g.next();
+  return textStream.map(x => g.next(x)).finally(() => g.return()).switchMap(({ value, done}) => {
+    if (done) return Observable.throw(new Error('premature cancellation'));
+    if (value && value.length) {
+      return Observable.of(value);
+    }
+    return Observable.never();
+  }).concatMap(arr => Observable.from(arr));
 }
 
 export function* parseRoot() {
@@ -174,6 +201,13 @@ export function* parseAreaLinks() {
   return [];
 }
 
+// for testing
+export function* chunk(text, incr=10) {
+  let pos = 0;
+  do {
+    yield text.substring(pos, pos+=incr);
+  } while (pos < text.length);
+}
 
 // better than split
 export function* splitify(string, seperator='\r\n') {
