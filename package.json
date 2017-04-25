@@ -7,7 +7,7 @@
     "build": "./node_modules/.bin/webpack --config webpack.prod.config.js",
     "watch": "./node_modules/.bin/webpack-dev-server --config webpack.config.js",
     "test": "./node_modules/.bin/concurrently --kill-others \"http-server\" \"karma start karma.conf.js\"",
-    "deploy": "git subtree push --prefix dist origin gh-pages"
+    "deploy": "git push origin `git subtree split --prefix dist master`:gh-pages --force"
   },
   "author": "",
   "license": "ISC",
