@@ -5,7 +5,7 @@ import { shrinkCropPhoto } from '../src/parse';
 import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage } from '../src/stream';
 import * as d3 from 'd3';
 
-let MyWorker = require('./worker');
+let MyWorker = require('./worker.js');
 let worker = new MyWorker();
 
 let eachBlobCommands = setupBlobCommandStream(worker, false);
