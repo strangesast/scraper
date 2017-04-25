@@ -73,7 +73,7 @@ let progress = main.pluck('progress')
     let pipe = stream.map(([p, of]) => {
       return [Date.now(), p, p/of];
     });
-    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).finally(() => console.log('TOTAL', Date.now() - start));
+    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).throttleTime(100).finally(() => console.log('TOTAL', Date.now() - start));
   });
 
 progress.withLatestFrom(objectCount).subscribe(([[rate, percentage], o]) => {
