@@ -172,7 +172,7 @@ export function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* parsePhotoFile();
+          value = yield* skipPhotoFile();
           break;
       }
       result[key] = value;
@@ -199,6 +199,19 @@ export function* parsePhotoFile() {
   } while (line.length == len) // should always be '82';
 
   return new Buffer(string, 'hex').toString('base64');
+}
+
+
+export function* skipPhotoFile() {
+  let size = Number(yield);
+  let line;
+  let firstLine = line = yield;
+  let len = firstLine.length;
+  do {
+    line = yield;
+  } while (line.length == len) // should always be '82';
+
+  return null;
 }
 
 

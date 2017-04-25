@@ -2,8 +2,11 @@ require('./index.less');
 
 import { Observable } from 'rxjs/Rx';
 import { shrinkCropPhoto } from '../src/parse';
-import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage } from '../src/stream';
+import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage, formatBytes } from '../src/stream';
 import * as d3 from 'd3';
+
+let chunkSizeInput = document.getElementById('chunk-size');
+let statsOutput = document.getElementById('stats');
 
 let MyWorker = require('worker-loader!./worker');
 let worker = new MyWorker();
@@ -20,7 +23,7 @@ let fileStream = Observable.fromEvent(fileInput, 'change')
 var lastFileId = -1;
 let main = fileStream.map(file => {
   let id = ++lastFileId;
-  let blobStream = Observable.from(breakify(file, 40000)).share();
+  let blobStream = Observable.from(breakify(file, +chunkSizeInput.value)).share();
   let length = file.size;
 
   let responseStream = eachBlobCommands.filter(({ id: _id }) => id == _id);
@@ -41,8 +44,7 @@ let main = fileStream.map(file => {
     return Observable.of(request).concat(response);
   }).share();
 
-  let progress = messages.map(({pos}) => pos/length);
-  //let progress = blobStream.map(({ pos }) => pos/length);
+  let progress = messages.map(({pos}) => [pos, length]);
 
   return { messages, progress, objects: objectsFound, fileName: file.name, fileModified: file.lastModified, fileId: id };
 
@@ -64,9 +66,19 @@ let objects = main.mergeMap(({ objects, fileId }) => {
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
 let progress = main.pluck('progress')
-  .switchMap(stream => stream.map(formatPercentage).throttleTime(100).concat(Observable.of('DONE')));
+  .switchMap(stream => {
+    let start = Date.now();
+    let lastt = start;
+    let lastp = 0;
+    let pipe = stream.map(([p, of]) => {
+      return [Date.now(), p, p/of];
+    });
+    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).finally(() => console.log('TOTAL', Date.now() - start));
+  });
 
-progress.withLatestFrom(objectCount).subscribe(([p, o]) => console.log('found', o, p));
+progress.withLatestFrom(objectCount).subscribe(([[rate, percentage], o]) => {
+  statsOutput.textContent = ['found', o, formatPercentage(percentage), formatBytes(rate)+'/s'].join(' | ');
+});
 
 var image = document.querySelector('img');
 

@@ -3508,6 +3508,7 @@ module.exports = g;
 /* unused harmony export parseRow */
 /* unused harmony export parseObject */
 /* unused harmony export parsePhotoFile */
+/* unused harmony export skipPhotoFile */
 /* unused harmony export parseAreaLinks */
 /* unused harmony export chunk */
 /* unused harmony export splitify */
@@ -3686,7 +3687,7 @@ function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* parsePhotoFile();
+          value = yield* skipPhotoFile();
           break;
       }
       result[key] = value;
@@ -3713,6 +3714,19 @@ function* parsePhotoFile() {
   } while (line.length == len) // should always be '82';
 
   return new Buffer(string, 'hex').toString('base64');
+}
+
+
+function* skipPhotoFile() {
+  let size = Number(yield);
+  let line;
+  let firstLine = line = yield;
+  let len = firstLine.length;
+  do {
+    line = yield;
+  } while (line.length == len) // should always be '82';
+
+  return null;
 }
 
 
@@ -6341,7 +6355,7 @@ exports.clearImmediate = clearImmediate;
 /* unused harmony export parseSaveStream */
 /* unused harmony export streamRequest */
 /* harmony export (immutable) */ __webpack_exports__["b"] = breakify;
-/* unused harmony export formatBytes */
+/* harmony export (immutable) */ __webpack_exports__["d"] = formatBytes;
 /* harmony export (immutable) */ __webpack_exports__["c"] = formatPercentage;
 
 
