@@ -1,6 +1,7 @@
 require('./index.less');
 
 import { Observable } from 'rxjs/Rx';
+import { shrinkCropPhoto } from '../src/parse';
 import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage } from '../src/stream';
 import * as d3 from 'd3';
 
@@ -16,11 +17,9 @@ let fileStream = Observable.fromEvent(fileInput, 'change')
   .filter(arr => arr && arr.length)
   .concatMap(arr => Observable.from(arr));
 
-var lastId = -1;
+var lastFileId = -1;
 let main = fileStream.map(file => {
-  let id = ++lastId;
-  console.log('file', file);
-
+  let id = ++lastFileId;
   let blobStream = Observable.from(breakify(file, 40000)).share();
   let length = file.size;
 
@@ -45,7 +44,7 @@ let main = fileStream.map(file => {
   let progress = messages.map(({pos}) => pos/length);
   //let progress = blobStream.map(({ pos }) => pos/length);
 
-  return { messages, progress, objects: objectsFound };
+  return { messages, progress, objects: objectsFound, fileName: file.name, fileModified: file.lastModified, fileId: id };
 
 }).share();
 
@@ -53,7 +52,15 @@ main.pluck('messages').mergeAll().subscribe(message => {
   worker.postMessage(message)
 }, (err) => console.error(err));
 
-let objects = main.pluck('objects').mergeAll().share();
+let lastObjectId = -1;
+let objects = main.mergeMap(({ objects, fileId }) => {
+  return objects.map(data => ({
+    id: ++lastObjectId,
+    data,
+    file: fileId
+  }));
+}).share();
+
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
 let progress = main.pluck('progress')
@@ -69,11 +76,11 @@ function stripObject(obj) {
 }
 
 objects
-  .map((obj, id) => ({data: obj, id }))
   .bufferTime(100)
-  //.filter(a => a.length > 0)
+  .filter(a => a.length > 0)
   .scan((a, b) => a.concat(b), [])
-  .subscribe(calculateGraph);
+  .map(calculateGraph)
+  .subscribe();
 
 var svg = d3.select(document.body.querySelector('svg'));
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
@@ -93,42 +100,81 @@ var gravityx = d3.forceX(width/2)
 var gravityy = d3.forceY(height/2)
   .strength(0.01)
 
-
 var simulation = d3.forceSimulation()
   .force('collision', d3.forceCollide(circleRadius))
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
   .force('charge', bodyForce)
   //.force('center', d3.forceCenter(width/2, height/2))
-  .alphaTarget(0.01)
+  .alphaTarget(1.0)
   .on('tick', ticked);
 
 let g = svg.append('g');
 var node = g.append('g').selectAll('circle');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
-calculateGraph(test);
 
-function calculateGraph(people) {
+var queue = d3.queue(2);
+calculateGraph([]);
+//calculateGraph(test);
+
+function calculateGraph(people, fileName) {
   node = node.data(people, ({ id }) => id)
 
   node.exit().remove()
 
   node = node.enter().append('circle')
     .attr('r', circleRadius-borderRadius/2)
-    .attr('fill', (d) => color(+d.SiteCode))
+    .attr('fill', (d) => {
+      return color(+d.file);
+    })
+    .attr('stroke', (d) => color(+d.file))
+    .attr('stroke-width', borderRadius)
     .call(d3.drag()
       .on('start', dragstarted)
       .on('drag', dragged)
       .on('end', dragended))
       .on('mouseover', mouseover)
       .on('mouseleave', mouseleave)
-    .merge(node)
+    // too slow
+    //.each(function(d) {
+    //  queue.defer(loadImage, d, this);
+    //})
+    .merge(node);
 
   //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
 
   simulation.nodes(people)//.on('tick', ticked);
-  simulation.alpha(1).restart();
+  simulation.alpha(1.0).restart();
+
+  return node;
+}
+
+async function loadImage(obj, element, callback) {
+  if (obj.data.PhotoFile) {
+    let data = obj.data.PhotoFile;
+
+    let url = await shrinkCropPhoto(Observable.of(data)).toPromise();
+    let pat = svg.select('defs').append('pattern');
+
+    let id = `image-${ obj.id }`;
+    pat
+      .attr('id', id)
+      .attr('x', -circleRadius)
+      .attr('y', -circleRadius)
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('height', circleRadius*2)
+      .attr('width', circleRadius*2)
+      .append('image')
+        .attr('x', '0')
+        .attr('y', '0')
+        .attr('width', circleRadius*2)
+        .attr('height', circleRadius*2)
+        .attr('xlink:href', url)
+
+    d3.select(element).attr('fill', `url(#${ id })`);
+  }
+  callback();
 }
 
 function ticked() {
@@ -136,6 +182,7 @@ function ticked() {
 }
 
 function mouseover(d) {
+  console.log(d);
   d3.select(this).style('opacity', 0.5);
 }
 
@@ -144,7 +191,7 @@ function mouseleave(d) {
 }
 
 function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(0.1).restart();
+  if (!d3.event.active) simulation.alphaTarget(1.0).restart();
   d.fx = d.x;
   d.fy = d.y;
 }
@@ -155,7 +202,7 @@ function dragged(d) {
 }
 
 function dragended(d) {
-  if (!d3.event.active) simulation.alphaTarget(0);
+  if (!d3.event.active) simulation.alphaTarget(1.0);
   d.fx = null;
   d.fy = null;
 }
