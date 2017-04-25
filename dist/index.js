@@ -3561,7 +3561,7 @@ function breakStreamIntoFullLines(textStream, seperator) {
   }).concatMap(({ value }) => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(value));
 }
 
-function* parseRoot() {
+function* parseRoot(includePhotos=false) {
   let line = yield;
   let res = null;
   let match;
@@ -3588,7 +3588,7 @@ function* parseRoot() {
           value = { dictionary };
           break;
         case 'Object':
-          let object = yield *parseObject();
+          let object = yield *parseObject(includePhotos);
           value = { object };
           break;
         case 'Path':
@@ -3644,7 +3644,7 @@ function parseRow(string) {
 }
 
 
-function* parseObject() {
+function* parseObject(includePhotos=false) {
   let line = yield;
   let header;
   let match;
@@ -3687,7 +3687,7 @@ function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* skipPhotoFile();
+          value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
           break;
       }
       result[key] = value;
@@ -39219,7 +39219,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
-	return new Worker(__webpack_require__.p + "e038478af8cb5b9b08bf.worker.js");
+	return new Worker(__webpack_require__.p + "20c9624e7785d785d555.worker.js");
 };
 
 /***/ }),
@@ -39309,19 +39309,16 @@ let progress = main.pluck('progress')
     let pipe = stream.map(([p, of]) => {
       return [Date.now(), p, p/of];
     });
-    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).throttleTime(100).finally(() => console.log('TOTAL', Date.now() - start));
+    return pipe.pairwise()
+      .map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f])
+      .throttleTime(100)
+      .startWith([0, 0])
+      .finally(() => statsOutput.textContent = statsOutput.textContent+`| Total time: ${ ((Date.now() - start)/1000).toFixed(4) }s`);
   });
 
-progress.withLatestFrom(objectCount).subscribe(([[rate, percentage], o]) => {
-  statsOutput.textContent = ['found', o, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["c" /* formatPercentage */])(percentage), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["d" /* formatBytes */])(rate)+'/s'].join(' | ');
+progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(([[rate, percentage], o]) => {
+  statsOutput.textContent = `found ${ o } | ${ __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["c" /* formatPercentage */])(percentage) } | ${ __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["d" /* formatBytes */])(rate)+'/s' }`
 });
-
-var image = document.querySelector('img');
-
-function stripObject(obj) {
-  // TODO: better checking
-  return obj.FullName || { first: obj.FirstName, last: obj.LastName };
-}
 
 objects
   .bufferTime(100)
@@ -39364,7 +39361,6 @@ let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ i
 
 var queue = __WEBPACK_IMPORTED_MODULE_3_d3__["queue"](2);
 calculateGraph([]);
-//calculateGraph(test);
 
 function calculateGraph(people, fileName) {
   node = node.data(people, ({ id }) => id)
@@ -39391,7 +39387,6 @@ function calculateGraph(people, fileName) {
     .merge(node);
 
   //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
-
   simulation.nodes(people)//.on('tick', ticked);
   simulation.alpha(1.0).restart();
 
