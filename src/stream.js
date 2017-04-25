@@ -1,6 +1,23 @@
-import { Observable } from 'rxjs';
+import { Observable } from 'rxjs/Rx';
 import { init, save } from './save';
 import { parseStream, shrinkCropPhoto } from './parse';
+
+
+export function setupBlobCommandStream(ctx, group=true) {
+  let commandStream = Observable.fromEvent(ctx, 'message')
+    .pluck('data').filter(x => x && typeof x.command === 'string');
+  
+  let blobCommands = commandStream
+    .filter(({ command }) => command.startsWith('blob'));
+
+  // ehhh
+  if (!group) return blobCommands;
+  
+  // break commands into groups of ids (allows for multiple blobs at once)
+  let eachBlobCommands = blobCommands.groupBy(({ id }) => id);
+
+  return eachBlobCommands;
+}
 
 export function streamObjectsFromURL(url, updateInterval) {
   let { stream, progress } = streamRequest(new Request(url), updateInterval);
@@ -126,7 +143,7 @@ export function* breakify(blob, incr=1e5) {
   let size = blob.size;
   let pos = 0;
   do {
-    yield ({ blob: blob.slice(pos, pos+=incr), pos });
+    yield ({ pos, blob: blob.slice(pos, pos+=incr) });
   } while (pos < size);
 }
 

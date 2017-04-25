@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable } from 'rxjs/Rx';
 
 const headerRe = /^\'\s*(.+)?$/;
 const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
@@ -12,6 +12,15 @@ export function parseStream(stream) {
     .concatMap(string => Observable.from(splitify(string)))
     .concat([null])
     .map(row => root.next(row)).pluck('value');
+}
+
+export function parseLinesStream(stream) {
+  let root = parseRoot();
+  root.next();
+  return stream
+    .map(line => root.next(line))
+    .finally(() => root.return())
+    .pluck('value');
 }
 
 function* breakLines(seperator='\r\n') {
@@ -31,13 +40,10 @@ function* breakLines(seperator='\r\n') {
 export function breakStreamIntoFullLines(textStream, seperator) {
   let g = breakLines(seperator);
   g.next();
-  return textStream.map(x => g.next(x)).finally(() => g.return()).switchMap(({ value, done}) => {
+  return textStream.map(x => g.next(x)).finally(() => g.return()).filter(({ value, done}) => {
     if (done) return Observable.throw(new Error('premature cancellation'));
-    if (value && value.length) {
-      return Observable.of(value);
-    }
-    return Observable.never();
-  }).concatMap(arr => Observable.from(arr));
+    return value && value.length;
+  }).concatMap(({ value }) => Observable.from(value));
 }
 
 export function* parseRoot() {

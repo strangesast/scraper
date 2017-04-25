@@ -1,62 +1,52 @@
-import { Observable } from 'rxjs';
-import { streamObjectsFromURL, formatPercentage } from './stream';
+import { Observable } from 'rxjs/Rx';
+import { setupBlobCommandStream, streamObjectsFromURL, formatPercentage } from './stream';
+import { breakStreamIntoFullLines, parseLinesStream } from './parse';
 
-let commandStream = Observable.fromEvent(self, 'message')
-  .pluck('data').filter(x => x && typeof x.command === 'string');
+let eachBlobCommands = setupBlobCommandStream(self);
 
-let blobCommands = commandStream.filter(({ command }) => command.startsWith('blob'));
-
-// break commands into groups of ids (allows for multiple blobs at once)
-let eachBlobCommands = blobCommands.groupBy(({ id }) => id);
-
-let eachBlobCommands.flatMap(commandStream => {
+eachBlobCommands.flatMap(commandStream => {
+  let id = commandStream.key;
   // only two valid incomming commands atm
-  let [validBlobCommands, invalidBlobCommands] = commandStream.partition(({ command }) => command === 'blob' || command === 'blobCancel');
+  let [validBlobCommands, invalidBlobCommands] = commandStream
+    .partition(({ command }) => command === 'blob' || command === 'blobCancel');
   
-  let input = validBlobCommands.filter(({ command }) => command === 'blob');
+  let input = validBlobCommands
+    //.do(x => console.log('received message:', x))
+    .filter(({ command }) => command === 'blob')
+    .share();
 
-  let cancel = validBlobCommands.filter(({ command }) => command === 'blobCancel');
+  let cancel = validBlobCommands
+    .filter(({ command }) => command === 'blobCancel');
 
   let fileReader = new FileReader();
+  let loads = Observable.fromEvent(fileReader, 'load').pluck('target', 'result');
 
-  input.concatMap(({ blob, pos, length }) => {
-    let load = Observable.fromEvent(fileReader, 'load').take(1);
-    fileReader.readAsText(blob);
-    return load;
-    
-  }).takeUntil(cancel);
+  let textStream = input
+    .concatMap(({ blob, pos, length }) => {
+      //console.log(`reading blob as text (${ pos/length })`)
+      let load = loads.take(1);
+      fileReader.readAsText(blob);
+      return load;
+    })
+    .takeUntil(cancel)
+    .share();
 
+  let linesStream = breakStreamIntoFullLines(textStream);
+  let parsed = parseLinesStream(linesStream);
+  let objects = parsed.filter(x => x && x.object).pluck('object');
+  let objectFoundMessages = objects.map(object => ({ command: 'blobObjectFound', object, id }));
 
+  let nextMessages = Observable.zip(input, textStream).map(([{ pos, length }, text]) => ({ command: 'blobNext', lastPos: pos, id }));
 
-
+  let responseMessages = Observable.merge(nextMessages, objectFoundMessages);
 
   // feedback on invalid command
-  let errorMessages = invalidBlobCommands.map(value => ({ error: 'invalid blob command', value }));
+  let errorMessages = invalidBlobCommands
+    .map(value => ({ error: 'invalid blob command', value, id }));
  
-  return errorMessages;
-});
+  return Observable.merge(responseMessages, errorMessages);
 
-
-start.map(({ command, value }) => {
-  switch (command) {
-    case 'start':
-      console.log('len', value.length);
-      let { objects, progress } = streamObjectsFromURL(value);
-
-      objects.mapTo(1).scan((a, b) => a+b, 0).withLatestFrom(progress).sampleTime(100).subscribe((o, i) => console.log(`${ o } objects, ${ formatPercentage(i) }`));
-      return Observable.empty();
-      return progress.concat(Observable.of(null));
-      //return Observable.interval(10).mapTo('toast').take(10).concat(Observable.of(null));
-
-    case 'test':
-      return Observable.of('toast').delay(1000);
-
-    default:
-      return Observable.empty();
-  }
-}).exhaust()
-  .subscribe(result => {
-    self.postMessage({ result });
-  }, (err) => {
-    console.error(err);
-  });
+}).subscribe(message => {
+  //console.log('sending', message);
+  self.postMessage(message)
+}, (err) => console.error(err));
