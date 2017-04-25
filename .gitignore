@@ -1,3 +1,7 @@
 node_modules/
 data/*
 !data/example.*
+!data/Personnel_CardHoldersFolder.dmp
+!data/Personnel_Root.dmp
+!data/Personnel_TemplatesFolder.dmp
+!data/Templates.dmp
