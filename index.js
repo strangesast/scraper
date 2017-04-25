@@ -3508,6 +3508,7 @@ module.exports = g;
 /* unused harmony export parseRow */
 /* unused harmony export parseObject */
 /* unused harmony export parsePhotoFile */
+/* unused harmony export skipPhotoFile */
 /* unused harmony export parseAreaLinks */
 /* unused harmony export chunk */
 /* unused harmony export splitify */
@@ -3686,7 +3687,7 @@ function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* parsePhotoFile();
+          value = yield* skipPhotoFile();
           break;
       }
       result[key] = value;
@@ -3713,6 +3714,19 @@ function* parsePhotoFile() {
   } while (line.length == len) // should always be '82';
 
   return new Buffer(string, 'hex').toString('base64');
+}
+
+
+function* skipPhotoFile() {
+  let size = Number(yield);
+  let line;
+  let firstLine = line = yield;
+  let len = firstLine.length;
+  do {
+    line = yield;
+  } while (line.length == len) // should always be '82';
+
+  return null;
 }
 
 
@@ -6341,7 +6355,7 @@ exports.clearImmediate = clearImmediate;
 /* unused harmony export parseSaveStream */
 /* unused harmony export streamRequest */
 /* harmony export (immutable) */ __webpack_exports__["b"] = breakify;
-/* unused harmony export formatBytes */
+/* harmony export (immutable) */ __webpack_exports__["d"] = formatBytes;
 /* harmony export (immutable) */ __webpack_exports__["c"] = formatPercentage;
 
 
@@ -39205,7 +39219,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
-	return new Worker(__webpack_require__.p + "cae306353b5d166957ef.worker.js");
+	return new Worker(__webpack_require__.p + "e038478af8cb5b9b08bf.worker.js");
 };
 
 /***/ }),
@@ -39227,6 +39241,9 @@ __webpack_require__(353);
 
 
 
+let chunkSizeInput = document.getElementById('chunk-size');
+let statsOutput = document.getElementById('stats');
+
 let MyWorker = __webpack_require__(354);
 let worker = new MyWorker();
 
@@ -39242,7 +39259,7 @@ let fileStream = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(f
 var lastFileId = -1;
 let main = fileStream.map(file => {
   let id = ++lastFileId;
-  let blobStream = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["b" /* breakify */])(file, 40000)).share();
+  let blobStream = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["b" /* breakify */])(file, +chunkSizeInput.value)).share();
   let length = file.size;
 
   let responseStream = eachBlobCommands.filter(({ id: _id }) => id == _id);
@@ -39263,8 +39280,7 @@ let main = fileStream.map(file => {
     return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of(request).concat(response);
   }).share();
 
-  let progress = messages.map(({pos}) => pos/length);
-  //let progress = blobStream.map(({ pos }) => pos/length);
+  let progress = messages.map(({pos}) => [pos, length]);
 
   return { messages, progress, objects: objectsFound, fileName: file.name, fileModified: file.lastModified, fileId: id };
 
@@ -39286,9 +39302,19 @@ let objects = main.mergeMap(({ objects, fileId }) => {
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
 let progress = main.pluck('progress')
-  .switchMap(stream => stream.map(__WEBPACK_IMPORTED_MODULE_2__src_stream__["c" /* formatPercentage */]).throttleTime(100).concat(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of('DONE')));
+  .switchMap(stream => {
+    let start = Date.now();
+    let lastt = start;
+    let lastp = 0;
+    let pipe = stream.map(([p, of]) => {
+      return [Date.now(), p, p/of];
+    });
+    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).finally(() => console.log('TOTAL', Date.now() - start));
+  });
 
-progress.withLatestFrom(objectCount).subscribe(([p, o]) => console.log('found', o, p));
+progress.withLatestFrom(objectCount).subscribe(([[rate, percentage], o]) => {
+  statsOutput.textContent = ['found', o, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["c" /* formatPercentage */])(percentage), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["d" /* formatBytes */])(rate)+'/s'].join(' | ');
+});
 
 var image = document.querySelector('img');
 
