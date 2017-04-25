@@ -50,9 +50,13 @@ let main = fileStream.map(file => {
 
 }).share();
 
-main.pluck('messages').mergeAll().subscribe(message => {
-  worker.postMessage(message)
-}, (err) => console.error(err));
+main.pluck('messages').mergeAll().subscribe(
+  message => {
+    worker.postMessage(message)
+  },
+  err => console.error(err),
+  _ => console.log('complete')
+);
 
 let lastObjectId = -1;
 let objects = main.mergeMap(({ objects, fileId }) => {
@@ -80,9 +84,13 @@ let progress = main.pluck('progress')
       .finally(() => statsOutput.textContent = statsOutput.textContent+`| Total time: ${ ((Date.now() - start)/1000).toFixed(4) }s`);
   });
 
-progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(([[rate, percentage], o]) => {
-  statsOutput.textContent = `found ${ o } | ${ formatPercentage(percentage) } | ${ formatBytes(rate)+'/s' }`
-});
+progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(
+  ([[rate, percentage], o]) => {
+    statsOutput.textContent = `found ${ o } | ${ formatPercentage(percentage) } | ${ formatBytes(rate)+'/s' }`
+  },
+  (err) => console.error(err),
+  _ => console.log('complete')
+);
 
 objects
   .bufferTime(100)
