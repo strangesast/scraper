@@ -3561,7 +3561,7 @@ function breakStreamIntoFullLines(textStream, seperator) {
   }).concatMap(({ value }) => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(value));
 }
 
-function* parseRoot() {
+function* parseRoot(includePhotos=false) {
   let line = yield;
   let res = null;
   let match;
@@ -3588,7 +3588,7 @@ function* parseRoot() {
           value = { dictionary };
           break;
         case 'Object':
-          let object = yield *parseObject();
+          let object = yield *parseObject(includePhotos);
           value = { object };
           break;
         case 'Path':
@@ -3644,7 +3644,7 @@ function parseRow(string) {
 }
 
 
-function* parseObject() {
+function* parseObject(includePhotos=false) {
   let line = yield;
   let header;
   let match;
@@ -3687,7 +3687,7 @@ function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* skipPhotoFile();
+          value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
           break;
       }
       result[key] = value;
