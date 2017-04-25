@@ -46,7 +46,7 @@ export function breakStreamIntoFullLines(textStream, seperator) {
   }).concatMap(({ value }) => Observable.from(value));
 }
 
-export function* parseRoot() {
+export function* parseRoot(includePhotos=false) {
   let line = yield;
   let res = null;
   let match;
@@ -73,7 +73,7 @@ export function* parseRoot() {
           value = { dictionary };
           break;
         case 'Object':
-          let object = yield *parseObject();
+          let object = yield *parseObject(includePhotos);
           value = { object };
           break;
         case 'Path':
@@ -129,7 +129,7 @@ export function parseRow(string) {
 }
 
 
-export function* parseObject() {
+export function* parseObject(includePhotos=false) {
   let line = yield;
   let header;
   let match;
@@ -172,7 +172,7 @@ export function* parseObject() {
           value = yield* parseAreaLinks();
           break;
         case 'PhotoFile':
-          value = yield* skipPhotoFile();
+          value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
           break;
       }
       result[key] = value;

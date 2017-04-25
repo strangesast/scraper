@@ -73,19 +73,16 @@ let progress = main.pluck('progress')
     let pipe = stream.map(([p, of]) => {
       return [Date.now(), p, p/of];
     });
-    return pipe.pairwise().map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f]).throttleTime(100).finally(() => console.log('TOTAL', Date.now() - start));
+    return pipe.pairwise()
+      .map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f])
+      .throttleTime(100)
+      .startWith([0, 0])
+      .finally(() => statsOutput.textContent = statsOutput.textContent+`| Total time: ${ ((Date.now() - start)/1000).toFixed(4) }s`);
   });
 
-progress.withLatestFrom(objectCount).subscribe(([[rate, percentage], o]) => {
-  statsOutput.textContent = ['found', o, formatPercentage(percentage), formatBytes(rate)+'/s'].join(' | ');
+progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(([[rate, percentage], o]) => {
+  statsOutput.textContent = `found ${ o } | ${ formatPercentage(percentage) } | ${ formatBytes(rate)+'/s' }`
 });
-
-var image = document.querySelector('img');
-
-function stripObject(obj) {
-  // TODO: better checking
-  return obj.FullName || { first: obj.FirstName, last: obj.LastName };
-}
 
 objects
   .bufferTime(100)
@@ -128,7 +125,6 @@ let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ i
 
 var queue = d3.queue(2);
 calculateGraph([]);
-//calculateGraph(test);
 
 function calculateGraph(people, fileName) {
   node = node.data(people, ({ id }) => id)
@@ -155,7 +151,6 @@ function calculateGraph(people, fileName) {
     .merge(node);
 
   //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
-
   simulation.nodes(people)//.on('tick', ticked);
   simulation.alpha(1.0).restart();
 
