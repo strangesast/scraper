@@ -69,6 +69,11 @@ let objects = main.mergeMap(({ objects, fileId }) => objects.map(data => ({
   file: fileId
 }))).share();
 
+function getName(data) {
+}
+
+objects.filter(({ data: { FullName, first, last, FirstName, LastName }}) => !FullName && !first && !last && !FirstName && !LastName).take(10).subscribe(console.log.bind(console));
+
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
 let progress = main.pluck('progress')
@@ -94,6 +99,7 @@ progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(
   _ => console.log('complete')
 );
 
+
 let addToObjectArray = objects
   .bufferTime(100)
   .filter(a => a.length > 0)
@@ -101,39 +107,13 @@ let addToObjectArray = objects
 let objectArray = addToObjectArray
   .scan((a, b) => a.concat(b), [])
 
-addToObjectArray.subscribe(arr => {
-  let columns = ['id', 'name'];
-  tableElement
-    .selectAll('tr')
-    .data(arr)
-    .enter()
-    .append('tr')
-    .on('mouseenter', function(d) {
-      select(this).style('background-color', 'lightgrey');
-    })
-    .on('mouseleave', function(d) {
-      select(this).style('background-color', 'white');
-    })
-    .selectAll('td').data(({ id, data }) => {
-      if (!data.FullName && data.first) {
-        //console.log('data', data, 'id', id);
-      }
-      let name = data.FullName ? (data.FullName.first + ' ' + data.FullName.last) : (data.first + ' ' + data.last);
-      return [ id, name ];
-    })
-    .enter()
-    .append('td')
-    .text(v => v);
-});
-
 let addToGraph = objectArray
   .map(calculateGraph)
   .subscribe(data => {
     //console.log('data', data);
   });
 
-var tableElement = select(document.body.querySelector('table'));
-var tableElements = tableElement.selectAll('tr');
+var tableElement = select(document.body.querySelector('.table'));
 
 var svgElement = document.body.querySelector('svg');
 var svg = select(svgElement);
@@ -165,23 +145,42 @@ var simulation = forceSimulation()
 
 let g = svg.append('g');
 var node = g.append('g').selectAll('circle');
+var table = select(document.body.querySelector('.table')).selectAll('.row');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
 
 calculateGraph([]);
 
 function calculateGraph(people, fileName) {
-  node = node.data(people, ({ id }) => id)
+  node = node.data(people, ({ id }) => id);
+  table = table.data(people, ({ id }) => id);
 
   node.exit().remove()
+  table.exit().remove()
 
-  node = node.enter().append('circle')
+  let nnode = node.enter().append('circle')
     .attr('r', circleRadius-borderRadius/2)
     .attr('fill', (d) => {
       return color(+d.file);
     })
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
+    .attr('data-id', ({id}) => id)
+    .on('mouseenter', function(d) {
+      let n = this;
+      node.style('opacity', function(d) {
+        return (n === this) ? 1.0 : 0.4;
+      });
+      table.filter(`[data-id="${ d.id }"]`).style('background-color', 'lightgrey').each(function() {
+        let p = this.parentElement.parentElement;
+        console.log(p.offsetHeight);
+        p.scrollTop = this.offsetTop - p.offsetHeight/3;
+      });
+    })
+    .on('mouseleave', function(d) {
+      node.style('opacity', 1.0);
+      table.filter(`[data-id="${ d.id }"]`).style('background-color', 'white');
+    })
     .call(drag()
       .on('start', dragstarted)
       .on('drag', dragged)
@@ -190,7 +189,31 @@ function calculateGraph(people, fileName) {
     //.each(function(d) {
     //  queue.defer(loadImage, d, this);
     //})
-    .merge(node);
+
+
+  let ntable = table.enter().append('div').attr('class', 'row')
+    .on('mouseenter', function(d) {
+      select(this).style('background-color', 'lightgrey');
+      node.style('opacity', 0.4);
+      node.filter(`[data-id="${ d.id }"]`).style('opacity', 1.0);
+    })
+    .on('mouseleave', function(d) {
+      select(this).style('background-color', 'white');
+      node.style('opacity', 1.0);
+    })
+
+  ntable
+    .attr('data-id', ({id}) => id)
+    .text(({ data }) => {
+      if (!data.FullName && data.first) {
+        //console.log('data', data, 'id', id);
+      }
+      let name = data.FullName ? (data.FullName.first + ' ' + data.FullName.last) : (data.first || data.last) ? (data.first + ' ' + data.last) : (data.FirstName || data.LastName) ? (data.FirstName + ' ' + data.LastName) : 'fuck';
+      return name;
+    })
+
+  node = nnode.merge(node);
+  table = ntable.merge(table);
 
   //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
   simulation.nodes(people)//.on('tick', ticked);
