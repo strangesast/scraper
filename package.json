@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "d3": "^4.8.0",
-    "rxjs": "^5.3.0"
+    "rxjs": "^5.3.0",
+    "jimp": "oliver-moran/jimp#master"
   }
 }

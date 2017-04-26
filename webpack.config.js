@@ -30,5 +30,11 @@ module.exports = {
       template: './src/index.html',
       title: config.name
     })
-  ]
+  ],
+  node: {
+    console: true,
+    fs: 'empty',
+    net: 'empty',
+    tls: 'empty'
+  }
 };
