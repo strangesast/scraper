@@ -3,7 +3,7 @@ require('./index.less');
 import { Observable } from 'rxjs/Rx';
 import { shrinkCropPhoto } from '../src/parse';
 import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage, formatBytes } from '../src/stream';
-import { select, scaleOrdinal, schemeCategory20, forceManyBody, forceX, forceY, forceSimulation, forceCollide, forceCenter, drag, event } from 'd3';
+import * as d3 from 'd3';
 
 let chunkSizeInput = document.getElementById('chunk-size');
 let statsOutput = document.getElementById('stats');
@@ -114,29 +114,44 @@ let addToGraph = objectArray
     //console.log('data', data);
   });
 
-var tableElement = select(document.body.querySelector('.table'));
+var tableElement = d3.select(document.body.querySelector('.table'));
 
 var svgElement = document.body.querySelector('svg');
-var svg = select(svgElement);
+var svg = d3.select(svgElement);
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
-svg.attr('viewBox', `0 0 ${ width } ${ height }`);
+var zoom = d3.zoom().scaleExtent([1, 8]).on('zoom', zoomed);
+
+var drag = d3.drag()
+  .subject((d) => ({ x: d.x - 300, y: d.y }))
+  .on('start', dragstarted)
+  .on('drag', dragged)
+  .on('end', dragended);
+
+//svg.attr('viewBox', `0 0 ${ width } ${ height }`);
+svg.call(zoom);
+
+function zoomed() {
+  container.attr('transform', d3.event.transform);
+}
+
+
 const circleRadius = 14;
 const borderRadius = 2;
 
-var color = scaleOrdinal(schemeCategory20);
+var color = d3.scaleOrdinal(d3.schemeCategory20);
 
-var bodyForce = forceManyBody()
+var bodyForce = d3.forceManyBody()
   .strength(-2.5)
 
-var gravityx = forceX(width/2)
+var gravityx = d3.forceX(width/2)
   .strength(0.01)
-var gravityy = forceY(height/2)
+var gravityy = d3.forceY(height/2)
   .strength(0.01)
 
-var simulation = forceSimulation()
-  .force('collision', forceCollide(circleRadius))
+var simulation = d3.forceSimulation()
+  .force('collision', d3.forceCollide(circleRadius))
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
   .force('charge', bodyForce)
@@ -150,9 +165,10 @@ svg.append('clipPath')
   .attr('r', circleRadius-borderRadius)
   .attr('cx', 0)
   .attr('cy', 0)
-let g = svg.append('g');
-var node = g.append('g').selectAll('g');
-var table = select(document.body.querySelector('.table')).selectAll('.row');
+
+let container = svg.append('g');
+var node = container.append('g').selectAll('g');
+var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
 
@@ -167,10 +183,7 @@ function calculateGraph(people, fileName) {
 
   let nnode = node.enter().append('g')
     .attr('data-id', ({id}) => id)
-    .call(drag()
-      .on('start', dragstarted)
-      .on('drag', dragged)
-      .on('end', dragended))
+    .call(drag)
     // too slow
     //.each(function(d) {
     //  queue.defer(loadImage, d, this);
@@ -195,12 +208,12 @@ function calculateGraph(people, fileName) {
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
-      select(this).style('background-color', 'lightgrey');
+      d3.select(this).style('background-color', 'lightgrey');
       node.style('opacity', 0.4);
       node.filter(`[data-id="${ d.id }"]`).style('opacity', 1.0);
     })
     .on('mouseleave', function(d) {
-      select(this).style('background-color', 'white');
+      d3.select(this).style('background-color', 'white');
       node.style('opacity', 1.0);
     })
 
@@ -254,7 +267,7 @@ async function loadImage(obj, element, callback) {
         .attr('height', circleRadius*2)
         .attr('xlink:href', url)
 
-    select(element).attr('fill', `url(#${ id })`);
+    d3.select(element).attr('fill', `url(#${ id })`);
   }
   callback();
 }
@@ -287,7 +300,7 @@ function dragged(d) {
 
 function dragended(d) {
   if (!event.active) simulation.alphaTarget(1.0);
-  select(this).style('opacity', 1.0);
+  d3.select(this).style('opacity', 1.0);
   d.fx = null;
   d.fy = null;
   node.style('opacity', 1.0);
