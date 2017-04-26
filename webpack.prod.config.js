@@ -23,6 +23,10 @@ module.exports = {
           fallback: 'style-loader',
           use: 'css-loader!less-loader'
         })
+      },
+      {
+        test: /\.png$/i,
+        loader: 'file-loader?name=/[name].png'
       }
     ]
   },

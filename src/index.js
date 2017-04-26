@@ -1,3 +1,4 @@
+require('../assets/placeholder.png');
 require('./index.less');
 
 import { Observable } from 'rxjs/Rx';
