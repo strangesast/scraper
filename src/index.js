@@ -3,7 +3,7 @@ require('./index.less');
 import { Observable } from 'rxjs/Rx';
 import { shrinkCropPhoto } from '../src/parse';
 import { setupBlobCommandStream, breakify, streamObjectsFromBlob, formatPercentage, formatBytes } from '../src/stream';
-import * as d3 from 'd3';
+import { select, scaleOrdinal, schemeCategory20, forceManyBody, forceX, forceY, forceSimulation, forceCollide, forceCenter, drag, event } from 'd3';
 
 let chunkSizeInput = document.getElementById('chunk-size');
 let statsOutput = document.getElementById('stats');
@@ -15,14 +15,16 @@ let eachBlobCommands = setupBlobCommandStream(worker, false);
 
 var fileInput = document.getElementById('file-upload');
 
+function isUsefulArray(arr, index) {
+  return arr && arr.length;
+}
+
 let fileStream = Observable.fromEvent(fileInput, 'change')
   .pluck('target', 'files')
-  .filter(arr => arr && arr.length)
-  .concatMap(arr => Observable.from(arr));
+  .filter(isUsefulArray)
+  .concatMap((arr, i) => Observable.from(arr));
 
-var lastFileId = -1;
-let main = fileStream.map(file => {
-  let id = ++lastFileId;
+function fileToStreams(file, id) {
   let blobStream = Observable.from(breakify(file, +chunkSizeInput.value)).share();
   let length = file.size;
 
@@ -35,7 +37,6 @@ let main = fileStream.map(file => {
 
   let messages = blobStream.concatMap(({ blob, pos }) => {
     let response = nextCommands.take(1)
-      //.do(({lastPos}) => console.log(`${ formatPercentage(lastPos / length) }`))
       .flatMap(({ lastPos }) =>
         lastPos === pos ?
           Observable.empty() :
@@ -47,25 +48,26 @@ let main = fileStream.map(file => {
   let progress = messages.map(({pos}) => [pos, length]);
 
   return { messages, progress, objects: objectsFound, fileName: file.name, fileModified: file.lastModified, fileId: id };
+};
 
-}).share();
+let main = fileStream.map(fileToStreams);
+
+function sendMessage(message) {
+  return worker.postMessage(message);
+};
 
 main.pluck('messages').mergeAll().subscribe(
-  message => {
-    worker.postMessage(message)
-  },
+  sendMessage,
   err => console.error(err),
   _ => console.log('complete')
 );
 
 let lastObjectId = -1;
-let objects = main.mergeMap(({ objects, fileId }) => {
-  return objects.map(data => ({
-    id: ++lastObjectId,
-    data,
-    file: fileId
-  }));
-}).share();
+let objects = main.mergeMap(({ objects, fileId }) => objects.map(data => ({
+  id: ++lastObjectId,
+  data,
+  file: fileId
+}))).share();
 
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
@@ -92,14 +94,49 @@ progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(
   _ => console.log('complete')
 );
 
-objects
+let addToObjectArray = objects
   .bufferTime(100)
   .filter(a => a.length > 0)
-  .scan((a, b) => a.concat(b), [])
-  .map(calculateGraph)
-  .subscribe();
 
-var svg = d3.select(document.body.querySelector('svg'));
+let objectArray = addToObjectArray
+  .scan((a, b) => a.concat(b), [])
+
+addToObjectArray.subscribe(arr => {
+  let columns = ['id', 'name'];
+  tableElement
+    .selectAll('tr')
+    .data(arr)
+    .enter()
+    .append('tr')
+    .on('mouseenter', function(d) {
+      select(this).style('background-color', 'lightgrey');
+    })
+    .on('mouseleave', function(d) {
+      select(this).style('background-color', 'white');
+    })
+    .selectAll('td').data(({ id, data }) => {
+      if (!data.FullName && data.first) {
+        //console.log('data', data, 'id', id);
+      }
+      let name = data.FullName ? (data.FullName.first + ' ' + data.FullName.last) : (data.first + ' ' + data.last);
+      return [ id, name ];
+    })
+    .enter()
+    .append('td')
+    .text(v => v);
+});
+
+let addToGraph = objectArray
+  .map(calculateGraph)
+  .subscribe(data => {
+    //console.log('data', data);
+  });
+
+var tableElement = select(document.body.querySelector('table'));
+var tableElements = tableElement.selectAll('tr');
+
+var svgElement = document.body.querySelector('svg');
+var svg = select(svgElement);
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
@@ -107,22 +144,22 @@ svg.attr('viewBox', `0 0 ${ width } ${ height }`);
 const circleRadius = 14;
 const borderRadius = 2;
 
-var color = d3.scaleOrdinal(d3.schemeCategory20);
+var color = scaleOrdinal(schemeCategory20);
 
-var bodyForce = d3.forceManyBody()
+var bodyForce = forceManyBody()
   .strength(-2.5)
 
-var gravityx = d3.forceX(width/2)
+var gravityx = forceX(width/2)
   .strength(0.01)
-var gravityy = d3.forceY(height/2)
+var gravityy = forceY(height/2)
   .strength(0.01)
 
-var simulation = d3.forceSimulation()
-  .force('collision', d3.forceCollide(circleRadius))
+var simulation = forceSimulation()
+  .force('collision', forceCollide(circleRadius))
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
   .force('charge', bodyForce)
-  //.force('center', d3.forceCenter(width/2, height/2))
+  //.force('center', forceCenter(width/2, height/2))
   .alphaTarget(1.0)
   .on('tick', ticked);
 
@@ -131,7 +168,6 @@ var node = g.append('g').selectAll('circle');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
 
-var queue = d3.queue(2);
 calculateGraph([]);
 
 function calculateGraph(people, fileName) {
@@ -146,12 +182,10 @@ function calculateGraph(people, fileName) {
     })
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
-    .call(d3.drag()
+    .call(drag()
       .on('start', dragstarted)
       .on('drag', dragged)
       .on('end', dragended))
-      .on('mouseover', mouseover)
-      .on('mouseleave', mouseleave)
     // too slow
     //.each(function(d) {
     //  queue.defer(loadImage, d, this);
@@ -187,7 +221,7 @@ async function loadImage(obj, element, callback) {
         .attr('height', circleRadius*2)
         .attr('xlink:href', url)
 
-    d3.select(element).attr('fill', `url(#${ id })`);
+    select(element).attr('fill', `url(#${ id })`);
   }
   callback();
 }
@@ -196,28 +230,20 @@ function ticked() {
   node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
 
-function mouseover(d) {
-  console.log(d);
-  d3.select(this).style('opacity', 0.5);
-}
-
-function mouseleave(d) {
-  d3.select(this).style('opacity', 1.0);
-}
-
 function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(1.0).restart();
+  if (!event.active) simulation.alphaTarget(1.0).restart();
   d.fx = d.x;
   d.fy = d.y;
 }
 
 function dragged(d) {
-  d.fx = d3.event.x;
-  d.fy = d3.event.y;
+  d.fx = event.x;
+  d.fy = event.y;
 }
 
 function dragended(d) {
-  if (!d3.event.active) simulation.alphaTarget(1.0);
+  if (!event.active) simulation.alphaTarget(1.0);
+  select(this).style('opacity', 1.0);
   d.fx = null;
   d.fy = null;
 }
