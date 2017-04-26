@@ -167,21 +167,6 @@ function calculateGraph(people, fileName) {
 
   let nnode = node.enter().append('g')
     .attr('data-id', ({id}) => id)
-    .on('mouseenter', function(d) {
-      let n = this;
-      node.style('opacity', function(d) {
-        return (n === this) ? 1.0 : 0.4;
-      });
-      table.filter(`[data-id="${ d.id }"]`).style('background-color', 'lightgrey').each(function() {
-        let p = this.parentElement.parentElement;
-        console.log(p.offsetHeight);
-        p.scrollTop = this.offsetTop - p.offsetHeight/3;
-      });
-    })
-    .on('mouseleave', function(d) {
-      node.style('opacity', 1.0);
-      table.filter(`[data-id="${ d.id }"]`).style('background-color', 'white');
-    })
     .call(drag()
       .on('start', dragstarted)
       .on('drag', dragged)
@@ -222,7 +207,11 @@ function calculateGraph(people, fileName) {
   let tableRows = ntable
     .attr('data-id', ({id}) => id)
 
-  tableRows.filter(d => d.data.PhotoFile).append('img').attr('src', (d) => d.data.PhotoFile);
+  tableRows//.filter(d => d.data.PhotoFile)
+    .append('div')
+    .attr('class', 'profile')
+    .append('img')
+    .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
   tableRows.append('p')
     .text(({ data }) => {
       if (!data.FullName && data.first) {
@@ -277,6 +266,16 @@ function ticked() {
 
 function dragstarted(d) {
   if (!event.active) simulation.alphaTarget(1.0).restart();
+  let n = this;
+  node.style('opacity', function(d) {
+    return (n === this) ? 1.0 : 0.4;
+  });
+  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'lightgrey').each(function() {
+    let p = this.parentElement.parentElement;
+    console.log(p.offsetHeight);
+    p.scrollTop = this.offsetTop - p.offsetHeight/3;
+  });
+
   d.fx = d.x;
   d.fy = d.y;
 }
@@ -291,4 +290,6 @@ function dragended(d) {
   select(this).style('opacity', 1.0);
   d.fx = null;
   d.fy = null;
+  node.style('opacity', 1.0);
+  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'white');
 }

@@ -199,10 +199,10 @@ export function* parsePhotoFile() {
   } while (line.length == len) // should always be '82';
 
   let buf = null;
-  try {
-    buf = 'data:image/png;base64,' + new Buffer(string, 'hex').toString('base64');
-  } catch (e) {
-    console.log('BAD');
+  if (string.length > 1e4) {
+    try {
+      buf = 'data:image/png;base64,' + new Buffer(string, 'hex').toString('base64');
+    } catch (e) {}
   }
   return buf;
 }

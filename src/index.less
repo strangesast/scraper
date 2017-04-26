@@ -21,21 +21,26 @@ body {
   .table {
     width: 100%;
     .row {
-      height: 40px;
+      height: 50px;
+      padding: 10px;
+      box-sizing: border-box;
       display: flex;
+      & > *:not(:first-child) {
+        margin-left: 8px;
+      }
       position: relative;
       flex-direction: row;
       align-items: center;
-      img {
-        max-width: 100%;
-        max-height: 100%;
-      }
-      &:hover > img {
-        z-index: 10;
-        position: absolute;
-        left: 0;
-        max-width: 400%;
-        max-height: 400%;
+      .profile {
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        min-width: 0;
+        img {
+          max-width: 100%;
+          max-height: 100%;
+        }
       }
       p {
         flex-grow: 1;
