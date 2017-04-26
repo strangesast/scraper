@@ -1,5 +1,1 @@
 dist/* binary
-data/Personnel_Root.dmp filter=lfs diff=lfs merge=lfs -text
-data/Personnel_CardHoldersFolder.dmp filter=lfs diff=lfs merge=lfs -text
-data/Personnel_TemplatesFolder.dmp filter=lfs diff=lfs merge=lfs -text
-data/Templates.dmp filter=lfs diff=lfs merge=lfs -text
