@@ -73,6 +73,7 @@ function getName(data) {
 }
 
 objects.filter(({ data: { FullName, first, last, FirstName, LastName }}) => !FullName && !first && !last && !FirstName && !LastName).take(10).subscribe(console.log.bind(console));
+//objects.filter(({ data: { PhotoFile }}) => PhotoFile).pluck('data', 'PhotoFile').subscribe(data => window.open(data));
 
 let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
 
@@ -143,8 +144,14 @@ var simulation = forceSimulation()
   .alphaTarget(1.0)
   .on('tick', ticked);
 
+svg.append('clipPath')
+  .attr('id', 'circleClip')
+  .append('circle')
+  .attr('r', circleRadius-borderRadius)
+  .attr('cx', 0)
+  .attr('cy', 0)
 let g = svg.append('g');
-var node = g.append('g').selectAll('circle');
+var node = g.append('g').selectAll('g');
 var table = select(document.body.querySelector('.table')).selectAll('.row');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
@@ -158,13 +165,7 @@ function calculateGraph(people, fileName) {
   node.exit().remove()
   table.exit().remove()
 
-  let nnode = node.enter().append('circle')
-    .attr('r', circleRadius-borderRadius/2)
-    .attr('fill', (d) => {
-      return color(+d.file);
-    })
-    .attr('stroke', (d) => color(+d.file))
-    .attr('stroke-width', borderRadius)
+  let nnode = node.enter().append('g')
     .attr('data-id', ({id}) => id)
     .on('mouseenter', function(d) {
       let n = this;
@@ -190,6 +191,22 @@ function calculateGraph(people, fileName) {
     //  queue.defer(loadImage, d, this);
     //})
 
+  nnode.append('circle')
+    .attr('r', circleRadius-borderRadius/2)
+    .attr('fill', (d) => {
+      return color(+d.file);
+    })
+    .attr('stroke', (d) => color(+d.file))
+    .attr('stroke-width', borderRadius)
+
+  nnode.filter(d => d.data.PhotoFile)
+    .append('image')
+    .attr('x', -circleRadius+borderRadius)
+    .attr('y', -circleRadius+borderRadius)
+    .attr('height', (circleRadius-borderRadius)*2)
+    .attr('width', (circleRadius-borderRadius)*2)
+    .attr('clip-path', 'url(#circleClip)')
+    .attr('xlink:href', (d) => d.data.PhotoFile);
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
@@ -202,8 +219,11 @@ function calculateGraph(people, fileName) {
       node.style('opacity', 1.0);
     })
 
-  ntable
+  let tableRows = ntable
     .attr('data-id', ({id}) => id)
+
+  tableRows.filter(d => d.data.PhotoFile).append('img').attr('src', (d) => d.data.PhotoFile);
+  tableRows.append('p')
     .text(({ data }) => {
       if (!data.FullName && data.first) {
         //console.log('data', data, 'id', id);
@@ -211,6 +231,7 @@ function calculateGraph(people, fileName) {
       let name = data.FullName ? (data.FullName.first + ' ' + data.FullName.last) : (data.first || data.last) ? (data.first + ' ' + data.last) : (data.FirstName || data.LastName) ? (data.FirstName + ' ' + data.LastName) : 'fuck';
       return name;
     })
+
 
   node = nnode.merge(node);
   table = ntable.merge(table);
@@ -250,7 +271,8 @@ async function loadImage(obj, element, callback) {
 }
 
 function ticked() {
-  node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
+  node.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
+  //node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
 
 function dragstarted(d) {

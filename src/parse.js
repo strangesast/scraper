@@ -6,7 +6,7 @@ const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
 
 export function parseStream(stream) {
   // check out Observable.wrap
-  let root = parseRoot();
+  let root = parseRoot(true);
   root.next();
   return stream
     .concatMap(string => Observable.from(splitify(string)))
@@ -15,7 +15,7 @@ export function parseStream(stream) {
 }
 
 export function parseLinesStream(stream) {
-  let root = parseRoot();
+  let root = parseRoot(true);
   root.next();
   return stream
     .map(line => root.next(line))
@@ -198,7 +198,13 @@ export function* parsePhotoFile() {
 
   } while (line.length == len) // should always be '82';
 
-  return new Buffer(string, 'hex').toString('base64');
+  let buf = null;
+  try {
+    buf = 'data:image/png;base64,' + new Buffer(string, 'hex').toString('base64');
+  } catch (e) {
+    console.log('BAD');
+  }
+  return buf;
 }
 
 

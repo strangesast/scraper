@@ -1,6 +1,8 @@
+require('jimp');
 import { Observable } from 'rxjs/Rx';
 import { setupBlobCommandStream, streamObjectsFromURL, formatPercentage } from './stream';
 import { breakStreamIntoFullLines, parseLinesStream } from './parse';
+const { Jimp } = self;
 
 let eachBlobCommands = setupBlobCommandStream(self);
 
@@ -33,7 +35,30 @@ eachBlobCommands.flatMap(commandStream => {
 
   let linesStream = breakStreamIntoFullLines(textStream);
   let parsed = parseLinesStream(linesStream);
-  let objects = parsed.filter(x => x && x.object).pluck('object');
+
+  let [withPhotos, withoutPhotos] = parsed.filter(x => x && x.object).pluck('object').partition(x => x.PhotoFile);
+  withPhotos = withPhotos.flatMap(obj => {
+    let read = Observable.fromPromise(Jimp.read(obj.PhotoFile));
+    
+    return read.flatMap(image => {
+      let { width, height } = image.bitmap;
+      let min = Math.min(width, height);
+      let maxDim = 200;
+      let size = Math.min(min, maxDim);
+      let dx = (width - min)/2;
+      let dy = (height - min)/2;
+      let fn = Observable.bindCallback(image.crop(dx, dy, min, min).resize(size, size).getBase64.bind(image));
+      return fn(Jimp.AUTO).map(([_, url]) => {
+        obj.PhotoFile = url;
+        return obj;
+      });
+    }).catch((err) => {
+      console.error(err);
+      return Observable.of(obj)
+    });
+  });
+
+  let objects = withPhotos.merge(withoutPhotos);
   let objectFoundMessages = objects.map(object => ({ command: 'blobObjectFound', object, id }));
 
   let nextMessages = Observable.zip(input, textStream).map(([{ pos, length }, text]) => ({ command: 'blobNext', lastPos: pos, id }));
@@ -47,6 +72,5 @@ eachBlobCommands.flatMap(commandStream => {
   return Observable.merge(responseMessages, errorMessages);
 
 }).subscribe(message => {
-  //console.log('sending', message);
   self.postMessage(message)
 }, (err) => console.error(err));
