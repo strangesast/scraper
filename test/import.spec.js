@@ -99,7 +99,7 @@ describe('import function', () => {
           .filter(({ command }) => command === 'blob')
           .share();
 
-        let readBlobs = readBlobStreamAsText(incomingBlobs.pluck('blob')).share();
+        let readBlobs = readBlobStreamAsText(incomingBlobs).share();
 
         let foundLines = streamIntoGen(readBlobs, breakLines).filter(v => v.length)
 
