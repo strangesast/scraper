@@ -191,14 +191,16 @@ const borderRadius = 2;
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var bodyForce = d3.forceManyBody()
-  .strength(-2.5)
+  .strength(-10.0)
+  .distanceMin(circleRadius)
 
 var gravityx = d3.forceX(width/2)
-  .strength(0.01)
+  .strength(0.03)
 var gravityy = d3.forceY(height/2)
-  .strength(0.01)
+  .strength(0.03)
 
 var simulation = d3.forceSimulation()
+  .alphaMin(0.5)
   .force('collision', d3.forceCollide(circleRadius))
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
@@ -320,7 +322,13 @@ function calculateGraph(people, fileName) {
 //  callback();
 //}
 
+let i = 0;
+const maxSeqTicks = 200;
 function ticked() {
+  if (i++ > maxSeqTicks) {
+    simulation.stop();
+    i = 0;
+  }
   node.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
   //node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
