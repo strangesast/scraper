@@ -8,6 +8,8 @@ import * as d3 from 'd3';
 
 let chunkSizeInput = document.getElementById('chunk-size');
 let statsOutput = document.getElementById('stats');
+let generateOutput = document.getElementById('export');
+let downloadOutput = document.getElementById('download');
 
 let MyWorker = require('worker-loader!./worker');
 let worker1 = new MyWorker();
@@ -73,11 +75,60 @@ let objects = worker1Messages.filter(isCommand('blobObjectsFound')).map(({ objec
 
 let nest = d3.nest().key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
 
-objects.bufferTime(50).filter(a => a.length).scan((a, b) => a.concat(b), []).subscribe(objects => {
+let objectArray = objects.bufferTime(50).filter(a => a.length).scan((a, b) => a.concat(b), [])
+  
+objectArray.subscribe(objects => {
   //let data = nest.entries(objects);
 
   calculateGraph(objects);
 });
+
+const cols = [
+  'External System ID',
+  'Load Date',
+  'First Name',
+  'Last Name',
+  'Middle Name',
+  'Roles',
+  'Status',
+  'Partition',
+  'Address',
+  'City',
+  'State',
+  'Zip',
+  'Phone',
+  'Work Phone',
+  'Email Address',
+  'Title',
+  'Department',
+  'Building',
+  'Embossed Number',
+  'Token Unique',
+  'Internal Number',
+  'Download',
+  'Token Status'
+];
+
+Observable.fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
+  .map(([e, arr]) => {
+    let data = nest.entries(arr);
+    arr = data.map(({ key, values }, j) => {
+      let Roles = 'Group' + j;
+      //if (Array.isArray(Roles)) Roles = Roles.join('|');
+      return values.map(obj => Object.assign(obj.data, { Roles }));
+    }).reduce((a, b) => a.concat(b), []);
+    let loadDate = new Date().toLocaleString();
+    let text = arr.map((data, i) => {
+      return [i+1, loadDate, data['First Name'], data['Last Name'], data['Middle Name'], data['Roles'], data['Status'], null, null, null, null, null, null, null, null, data['Title'], data['Department'], data['Building'], data['Embossed Number'], data['Token Unique'], data['Internal Number'], data['Download'], data['Token Status']].map(v => v != null ? JSON.stringify(v) : '').join(',');
+    }).join('\r\n');
+    let blob = new Blob([text], { type: 'text/plain' });
+    return URL.createObjectURL(blob);
+  })
+  .subscribe(output => {
+    downloadOutput.disabled = false;
+    downloadOutput.setAttribute('download', 'dump.csv');
+    downloadOutput.setAttribute('href', output);
+  });
 
 /* too much memory
 let withPhoto = objects.filter(x => x.data.PhotoFile);
