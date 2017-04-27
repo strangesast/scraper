@@ -31,10 +31,10 @@ export function readBlobStreamAsText(stream) {
   let fileReader = new FileReader();
   let readStream = Observable.fromEvent(fileReader, 'load').pluck('target', 'result');
 
-  return stream.concatMap(blob => {
+  return stream.concatMap(({ blob, pos }) => {
     let read = readStream.take(1);
     fileReader.readAsText(blob);
-    return read;
+    return read.map(text => ({ text, pos }));
   });
 }
 

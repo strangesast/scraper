@@ -136,9 +136,7 @@ describe('import function', () => {
 
       let responses = Observable.fromEvent(port1, 'message').pluck('data').share();
 
-      let scheduler = responses.filter(({ command }) => command === 'blobNext').concatMap(r => {
-        return Observable.of(r).delay(10);
-      });
+      let scheduler = responses.filter(({ command }) => command === 'blobNext');
 
       let fileId = 0;
 
@@ -170,4 +168,15 @@ describe('import function', () => {
     }
 
   }, 10000);
+
+  it ('should process at most n streams', (finished) => {
+    const cardinal = ['one', 'two', 'three', 'four'];
+
+    Observable.interval(100).take(4).map((i) => {
+      return Observable.interval(100).map(j => [cardinal[i], j].join(', ')).take(5);
+    })
+    .mergeAll(2)
+    .subscribe(console.log.bind(console), console.error.bind(console), () => finished);
+
+  });
 });
