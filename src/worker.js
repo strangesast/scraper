@@ -4,12 +4,19 @@ import { readBlobStreamAsText, setupBlobCommandStream, streamObjectsFromURL, for
 import { streamIntoGen, breakLines, breakStreamIntoFullLines, parseLinesStream, parseRoot } from './parse';
 const { Jimp } = self;
 
-let eachBlobCommands = setupBlobCommandStream(self);
+let commandStream = Observable.fromEvent(self, 'message')
+  .pluck('data').filter(x => x && typeof x.command === 'string');
 
-eachBlobCommands.flatMap(commandStream => {
-  let id = commandStream.key;
+let blobCommands = commandStream
+  .filter(({ command }) => command.startsWith('blob'));
+
+// break commands into groups of ids (allows for multiple blobs at once)
+let eachBlobCommands = blobCommands.groupBy(({ id }) => id);
+
+eachBlobCommands.flatMap(stream => {
+  let id = stream.key;
   // only two valid incomming commands atm
-  let [validBlobCommands, invalidBlobCommands] = commandStream
+  let [validBlobCommands, invalidBlobCommands] = stream
     .partition(({ command }) => command === 'blob' || command === 'blobCancel');
   
   let input = validBlobCommands
@@ -24,10 +31,10 @@ eachBlobCommands.flatMap(commandStream => {
   let g = breakLines();
   g.next('');
 
-  let parser = parseRoot(true);
+  let parser = parseRoot(false);
   parser.next('');
 
-  let test = textStream.map(({ text, pos }) => {
+  let parseText = textStream.map(({ text, pos }) => {
     let { value: lines, done } = g.next(text);
 
     let objects = [];
@@ -48,31 +55,7 @@ eachBlobCommands.flatMap(commandStream => {
     parser.return();
   });
 
-  /*
-  let [withPhotos, withoutPhotos] = parsed.filter(x => x && x.object).pluck('object').partition(x => x.PhotoFile);
-  withPhotos = withPhotos.flatMap(obj => {
-    let read = Observable.fromPromise(Jimp.read(obj.PhotoFile));
-    
-    return read.flatMap(image => {
-      let { width, height } = image.bitmap;
-      let min = Math.min(width, height);
-      let maxDim = 200;
-      let size = Math.min(min, maxDim);
-      let dx = (width - min)/2;
-      let dy = (height - min)/2;
-      let fn = Observable.bindCallback(image.crop(dx, dy, min, min).resize(size, size).getBase64.bind(image));
-      return fn(Jimp.AUTO).map(([_, url]) => {
-        obj.PhotoFile = url;
-        return obj;
-      });
-    }).catch((err) => {
-      console.error(err);
-      return Observable.of(obj)
-    });
-  });
-  */
-
-  let nextMessages = test.map(lastPos => {
+  let nextMessages = parseText.map(lastPos => {
     return { command: 'blobNext', lastPos, id };
   });
 
@@ -87,3 +70,23 @@ eachBlobCommands.flatMap(commandStream => {
 }).subscribe(message => {
   self.postMessage(message)
 }, console.error.bind(console));
+
+
+commandStream.filter(({ command }) => command.startsWith('photo')).flatMap(({ photo, id }) => {
+  let read = Observable.fromPromise(Jimp.read(photo));
+  
+  let command = 'photoNext';
+
+  return read.flatMap(image => {
+    let { width, height } = image.bitmap;
+    let min = Math.min(width, height);
+    let maxDim = 200;
+    let size = Math.min(min, maxDim);
+    let dx = (width - min)/2;
+    let dy = (height - min)/2;
+    let fn = Observable.bindCallback(image.crop(dx, dy, min, min).resize(size, size).getBase64.bind(image));
+    return fn(Jimp.AUTO).map(([_, url]) => {
+      return { command, id, url };
+    });
+  });
+}).subscribe(message => self.postMessage(message));
