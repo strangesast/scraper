@@ -14,6 +14,7 @@ export function parseStream(stream) {
     .map(row => root.next(row)).pluck('value');
 }
 
+
 export function parseLinesStream(stream) {
   let root = parseRoot(true);
   root.next();
@@ -22,6 +23,7 @@ export function parseLinesStream(stream) {
     .finally(() => root.return())
     .pluck('value');
 }
+
 
 export function* breakLines(seperator='\r\n') {
   let res, buf = '', i;
@@ -37,14 +39,28 @@ export function* breakLines(seperator='\r\n') {
   }
 };
 
-export function breakStreamIntoFullLines(textStream, seperator) {
-  let g = breakLines(seperator);
+
+export function streamIntoGen(stream, gen, ignoreNull=true) {
+  let g = gen();
   g.next();
-  return textStream.map(x => g.next(x)).finally(() => g.return()).filter(({ value, done}) => {
-    if (done) return Observable.throw(new Error('premature cancellation'));
-    return value && value.length;
-  }).concatMap(({ value }) => Observable.from(value));
+  let ret = stream.map(val => {
+    let { value, done } = g.next(val);
+    if (done) throw new Error('gen completed before stream');
+    return value;
+  }).finally(() => g.return());
+  if (ignoreNull) {
+    ret = ret.filter(val => val != null);
+  }
+  return ret;
 }
+
+
+export function breakStreamIntoFullLines(textStream, seperator) {
+  return streamIntoGen(textStream, breakLines.bind(seperator)).filter(lines => {
+    return lines.length;
+  }).concatMap(lines => Observable.from(lines));
+}
+
 
 export function* parseRoot(includePhotos=false) {
   let line = yield;

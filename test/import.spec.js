@@ -1,7 +1,7 @@
 import importFile from '../src/import';
 import { Observable } from 'rxjs/Rx';
-import { breakStreamIntoFullLines, chunk, breakLines } from '../src/parse';
-import { breakify, breakifyStream, streamObjectsFromURL, formatPercentage } from '../src/stream';
+import { breakStreamIntoFullLines, streamIntoGen, chunk, breakLines } from '../src/parse';
+import { readBlobStreamAsText, breakify, breakifyStream, streamObjectsFromURL, formatPercentage } from '../src/stream';
 import { init, save } from '../src/save';
 
 const text = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\r\nUt enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\r\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.\r\nExcepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\r\n';
@@ -96,24 +96,12 @@ describe('import function', () => {
 
       validFakeWorkerMessages.groupBy(({ id }) => id).map(messageStream => {
         let incomingBlobs = messageStream
-          .filter(({ command }) => command === 'blob');
+          .filter(({ command }) => command === 'blob')
+          .share();
 
-        let fileReader = new FileReader();
-        let readStream = Observable.fromEvent(fileReader, 'load').pluck('target', 'result');
+        let readBlobs = readBlobStreamAsText(incomingBlobs.pluck('blob')).share();
 
-        let readBlobs = incomingBlobs.concatMap(({ blob }) => {
-          let read = readStream.take(1);
-          fileReader.readAsText(blob);
-          return read;
-        }).share();
-
-        let g = breakLines();
-        g.next();
-        let foundLines = readBlobs.map(text => {
-          let { value, done } = g.next(text);
-          if (done) throw new Error('premature completion');
-          return value;
-        }).finally(() => g.return()).filter(arr => arr && arr.length);
+        let foundLines = streamIntoGen(readBlobs, breakLines).filter(v => v.length)
 
         let foundObjectMessages = foundLines.map(lines => {
           return { command: 'blobLinesFound', lines };
@@ -139,30 +127,46 @@ describe('import function', () => {
     if (true) {
       port1.start();
 
-      let sample = text.repeat(1000);
+      let sample = text.repeat(1e5);
       let file = new Blob([sample], { type: 'text/plain' });
 
       let fileSize = file.size;
-      let chunkSize = 72;
+      let chunkSize = fileSize/100;
       let chunkCount = Math.ceil(fileSize/chunkSize);
 
-      let responses = Observable.fromEvent(port1, 'message').pluck('data');
+      let responses = Observable.fromEvent(port1, 'message').pluck('data').share();
 
-      let scheduler = responses.filter(({ command }) => command === 'blobNext');
+      let scheduler = responses.filter(({ command }) => command === 'blobNext').concatMap(r => {
+        return Observable.of(r).delay(10);
+      });
 
-      let processing = breakifyStream(0, file, port1, scheduler, chunkSize).share();
+      let fileId = 0;
+
+      // break file into chunks, create message for each
+      function* gen(file, chunkSize) {
+        for (let { blob, pos } of breakify(file, chunkSize)) {
+          port1.postMessage({ command: 'blob', blob, pos, id: fileId });
+          yield pos;
+        }
+      }
+    
+      function validator(lastValue, response) {
+        let { lastPos } = response;
+        if (lastValue != lastPos) throw new Error('unexpected response');
+      }
+
+      let processing = breakifyStream(gen(file, chunkSize), scheduler, validator);
 
       let foundLines = responses.filter(({ command }) => command == 'blobLinesFound').pluck('lines');
       
       let lineCount = foundLines.map(a => a.length).scan((a, b) => a + b, 0);
 
-      processing.throttleTime(100).withLatestFrom(lineCount).subscribe(([p, n]) => console.log(formatPercentage(p/fileSize) + ' ' + n + ' lines'));
+      processing.withLatestFrom(lineCount).throttleTime(100).subscribe(
+        ([p, n]) => console.log(formatPercentage(p/fileSize) + ' ' + n + ' lines'),
+        console.error.bind(console),
+        finished
+      );
 
-      processing.last().delay(1000).withLatestFrom(lineCount).subscribe(([_, n]) => {
-        let justSplit = sample.split('\r\n');
-        expect(n).toBe(justSplit.length - 1);
-        finished();
-      });
     }
 
   }, 10000);
