@@ -1,0 +1,61 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+.left {
+  width: 300px;
+  overflow-y: auto;
+}
+.left pre {
+  white-space: normal;
+}
+.left .table {
+  width: 100%;
+}
+.left .table .row {
+  height: 50px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+}
+.left .table .row > *:not(:first-child) {
+  margin-left: 8px;
+}
+.left .table .row .profile {
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.left .table .row .profile img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.left .table .row p {
+  flex-grow: 1;
+}
+.right {
+  flex-grow: 1;
+}
+.right div {
+  position: relative;
+}
+.right div svg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
