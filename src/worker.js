@@ -1,7 +1,7 @@
 require('jimp');
 import { Observable } from 'rxjs/Rx';
-import { setupBlobCommandStream, streamObjectsFromURL, formatPercentage } from './stream';
-import { breakStreamIntoFullLines, parseLinesStream } from './parse';
+import { readBlobStreamAsText, setupBlobCommandStream, streamObjectsFromURL, formatPercentage } from './stream';
+import { streamIntoGen, breakLines, breakStreamIntoFullLines, parseLinesStream, parseRoot } from './parse';
 const { Jimp } = self;
 
 let eachBlobCommands = setupBlobCommandStream(self);
@@ -13,29 +13,42 @@ eachBlobCommands.flatMap(commandStream => {
     .partition(({ command }) => command === 'blob' || command === 'blobCancel');
   
   let input = validBlobCommands
-    //.do(x => console.log('received message:', x))
     .filter(({ command }) => command === 'blob')
-    .share();
+    .takeWhile(({ done }) => !done)
 
   let cancel = validBlobCommands
     .filter(({ command }) => command === 'blobCancel');
 
-  let fileReader = new FileReader();
-  let loads = Observable.fromEvent(fileReader, 'load').pluck('target', 'result');
+  let textStream = readBlobStreamAsText(input);
 
-  let textStream = input
-    .concatMap(({ blob, pos, length }) => {
-      //console.log(`reading blob as text (${ pos/length })`)
-      let load = loads.take(1);
-      fileReader.readAsText(blob);
-      return load;
-    })
-    .takeUntil(cancel)
-    .share();
+  let g = breakLines();
+  g.next('');
 
-  let linesStream = breakStreamIntoFullLines(textStream);
-  let parsed = parseLinesStream(linesStream);
+  let parser = parseRoot(false);
+  parser.next('');
 
+  let test = textStream.map(({ text, pos }) => {
+    let { value: lines, done } = g.next(text);
+
+    let objects = [];
+    for (let line of lines) {
+      let { value, done } = parser.next(line);
+      if (value && value.object) {
+        objects.push(value.object);
+      }
+    }
+
+    if (objects.length) {
+      self.postMessage({ command: 'blobObjectsFound', objects, id });
+    }
+
+    return pos;
+  }).finally(() => {
+    g.return();
+    parser.return();
+  });
+
+  /*
   let [withPhotos, withoutPhotos] = parsed.filter(x => x && x.object).pluck('object').partition(x => x.PhotoFile);
   withPhotos = withPhotos.flatMap(obj => {
     let read = Observable.fromPromise(Jimp.read(obj.PhotoFile));
@@ -57,13 +70,13 @@ eachBlobCommands.flatMap(commandStream => {
       return Observable.of(obj)
     });
   });
+  */
 
-  let objects = withPhotos.merge(withoutPhotos);
-  let objectFoundMessages = objects.map(object => ({ command: 'blobObjectFound', object, id }));
+  let nextMessages = test.map(lastPos => {
+    return { command: 'blobNext', lastPos, id };
+  });
 
-  let nextMessages = Observable.zip(input, textStream).map(([{ pos, length }, text]) => ({ command: 'blobNext', lastPos: pos, id }));
-
-  let responseMessages = Observable.merge(nextMessages, objectFoundMessages);
+  let responseMessages = nextMessages;//Observable.merge(nextMessages, objectsFoundMessages);
 
   // feedback on invalid command
   let errorMessages = invalidBlobCommands
@@ -73,4 +86,4 @@ eachBlobCommands.flatMap(commandStream => {
 
 }).subscribe(message => {
   self.postMessage(message)
-}, (err) => console.error(err));
+}, console.error.bind(console));

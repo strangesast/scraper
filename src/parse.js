@@ -56,7 +56,7 @@ export function streamIntoGen(stream, gen, ignoreNull=true) {
 
 
 export function breakStreamIntoFullLines(textStream, seperator) {
-  return streamIntoGen(textStream, breakLines.bind(seperator)).filter(lines => {
+  return streamIntoGen(textStream, breakLines.bind(null, seperator)).filter(lines => {
     return lines.length;
   }).concatMap(lines => Observable.from(lines));
 }
@@ -67,42 +67,45 @@ export function* parseRoot(includePhotos=false) {
   let res = null;
   let match;
   let headers = [];
-  let values = [];
-  while (line != null) {
-    // header
-    let key, value, match;
-    if (match = headerRe.exec(line)) {
-      value = match[1];
-      let keyMatch = keyRe.exec(value);
-      if (keyMatch) {
-        [key, value] = keyMatch.slice(1);
-        headers[key] = value;
-      } else {
-        headers.push(value);
-      }
+  //let values = [];
+  try {
+    while (line != null) {
+      // header
+      let key, value, match;
+      if (match = headerRe.exec(line)) {
+        value = match[1];
+        let keyMatch = keyRe.exec(value);
+        if (keyMatch) {
+          [key, value] = keyMatch.slice(1);
+          headers[key] = value;
+        } else {
+          headers.push(value);
+        }
 
-    } else if (match = keyRe.exec(line)) {
-      [key, value] = match.slice(1);
-      switch (key) {
-        case 'Dictionary':
-          let dictionary = yield *parseDictionary('NAME');
-          value = { dictionary };
-          break;
-        case 'Object':
-          let object = yield *parseObject(includePhotos);
-          value = { object };
-          break;
-        case 'Path':
-          value = { path: value };
-          break;
-        default:
-          console.error('unrecognized key', key);
+      } else if (match = keyRe.exec(line)) {
+        [key, value] = match.slice(1);
+        switch (key) {
+          case 'Dictionary':
+            let dictionary = yield *parseDictionary('NAME');
+            value = { dictionary };
+            break;
+          case 'Object':
+            let object = yield *parseObject(includePhotos);
+            value = { object };
+            break;
+          case 'Path':
+            value = { path: value };
+            break;
+          default:
+            throw new Error('unrecognized key', key);
+        }
+        //values.push(value);
       }
-      values.push(value);
+      line = yield value;
     }
-    line = yield value;
+  } finally {
   }
-  return { values, headers };
+  //return { values, headers };
 }
 
 
@@ -111,32 +114,35 @@ export function* parseDictionary(keyName) {
   let header;
   let result = [];
   let keyIndex;
-  while (!/^EndDictionary$/.test(line)) {
-    if (!header) {
-      if (line.startsWith('\'')) {
-        header = parseRow(line.substring(1));
-        if (keyName) {
-          keyIndex = header.indexOf(keyName);
-          if (keyIndex == -1) throw new Error('incompatible dict key');
+  try {
+    while (!/^EndDictionary$/.test(line)) {
+      if (!header) {
+        if (line.startsWith('\'')) {
+          header = parseRow(line.substring(1));
+          if (keyName) {
+            keyIndex = header.indexOf(keyName);
+            if (keyIndex == -1) throw new Error('incompatible dict key');
+          }
         }
-      }
-      line = yield { header };
-    } else {
-      let row = parseRow(line);
-      let obj = row.reduce((res, field, i) => {
-        res[header[i]] = field;
-        return res
-      }, {});
-      if (keyName) {
-        let key = header[keyIndex];
-        result[obj[header[keyIndex]]] = obj;
+        line = yield { header };
       } else {
-        result.push(obj);
+        let row = parseRow(line);
+        let obj = row.reduce((res, field, i) => {
+          res[header[i]] = field;
+          return res
+        }, {});
+        if (keyName) {
+          let key = header[keyIndex];
+          result[obj[header[keyIndex]]] = obj;
+        } else {
+          result.push(obj);
+        }
+        line = yield obj;
       }
-      line = yield obj;
     }
+  } finally {
+    return result;
   }
-  return result;
 }
 
 
@@ -150,53 +156,56 @@ export function* parseObject(includePhotos=false) {
   let header;
   let match;
   let result = {};
-  while (!/^EndObject$/.test(line)) {
-    if (match = keyRe.exec(line)) {
-      let [key, value] = match.slice(1);
-      switch (key) {
-        // text
-        case 'Type':
-        case 'Owner':
-        case 'RefTemplate':
-        case 'Alias':
-        case 'CreatedBy':
-        case 'InstanceId':
-        case 'CardType':
-        case 'SiteCode':
-        case 'CardNumber':
-        case 'CardNumber2':
-        case 'Department':
-        case 'FirstName':
-        case 'JobTitle':
-        case 'OfficeLocation':
-        case 'FipsPersonId':
-        case 'BlobTemplate':
-          break;
-        case 'FullName':
-          let [last, first] = value.split(',').map(s => s.trim());
-          value = { first, last };
-          break;
-        // dates
-        case 'ActivationDate':
-        case 'CreateTime':
-        case 'LastChange':
-        case 'StartDate':
-        case 'TimeLocked':
-          value = new Date(value);
-          break;
-        case 'AreaLinks':
-          value = yield* parseAreaLinks();
-          break;
-        case 'PhotoFile':
-          value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
-          break;
-      }
-      result[key] = value;
-      line = yield value;
-    } // else do nothing / error
-    line = yield null;
+  try {
+    while (!/^EndObject$/.test(line)) {
+      if (match = keyRe.exec(line)) {
+        let [key, value] = match.slice(1);
+        switch (key) {
+          // text
+          case 'Type':
+          case 'Owner':
+          case 'RefTemplate':
+          case 'Alias':
+          case 'CreatedBy':
+          case 'InstanceId':
+          case 'CardType':
+          case 'SiteCode':
+          case 'CardNumber':
+          case 'CardNumber2':
+          case 'Department':
+          case 'FirstName':
+          case 'JobTitle':
+          case 'OfficeLocation':
+          case 'FipsPersonId':
+          case 'BlobTemplate':
+            break;
+          case 'FullName':
+            let [last, first] = value.split(',').map(s => s.trim());
+            value = { first, last };
+            break;
+          // dates
+          case 'ActivationDate':
+          case 'CreateTime':
+          case 'LastChange':
+          case 'StartDate':
+          case 'TimeLocked':
+            value = new Date(value);
+            break;
+          case 'AreaLinks':
+            value = yield* parseAreaLinks();
+            break;
+          case 'PhotoFile':
+            value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
+            break;
+        }
+        result[key] = value;
+        line = yield value;
+      } // else do nothing / error
+      line = yield null;
+    }
+  } finally {
+    return result;
   }
-  return result;
 }
 
 
@@ -208,11 +217,13 @@ export function* parsePhotoFile() {
   let len = firstLine.length;
 
   let string = line.trim();
-  do {
-    line = yield;
-    string+=line.trim();
+  try {
+    do {
+      line = yield;
+      string+=line.trim();
 
-  } while (line.length == len) // should always be '82';
+    } while (line.length == len) // should always be '82';
+  } finally {}
 
   let buf = null;
   if (string.length > 1e4) {
@@ -229,11 +240,13 @@ export function* skipPhotoFile() {
   let line;
   let firstLine = line = yield;
   let len = firstLine.length;
-  do {
-    line = yield;
-  } while (line.length == len) // should always be '82';
-
-  return null;
+  try {
+    do {
+      line = yield;
+    } while (line.length == len) // should always be '82';
+  } finally {
+    return null;
+  }
 }
 
 
