@@ -19,10 +19,23 @@ export function setupBlobCommandStream(ctx, group=true) {
   return eachBlobCommands;
 }
 
+
 export function streamObjectsFromURL(url, updateInterval) {
   let { stream, progress } = streamRequest(new Request(url), updateInterval);
 
   return Object.assign(parseSaveStream(stream), { progress });
+}
+
+
+export function readBlobStreamAsText(stream) {
+  let fileReader = new FileReader();
+  let readStream = Observable.fromEvent(fileReader, 'load').pluck('target', 'result');
+
+  return stream.concatMap(blob => {
+    let read = readStream.take(1);
+    fileReader.readAsText(blob);
+    return read;
+  });
 }
 
 
@@ -144,33 +157,26 @@ export function* breakify(blob, incr=1e5) {
     let size = blob.size;
     let pos = 0;
     do {
-      yield blob.slice(pos, pos+=incr);
+      yield { pos, blob: blob.slice(pos, pos+=incr) };
     } while (pos < size);
   } finally {
   }
 }
 
-export function breakifyStream(id, file, port, scheduler, incr=1e5) {
-  let fileSize = file.size;
-  let chunkSize = 72;
-  let chunkCount = Math.ceil(fileSize/chunkSize);
 
-  let g = breakify(file, chunkSize);
-
-  // progress
-  return Observable.range(0, chunkCount).concatMap(i => {
-    let { value: blob, done } = g.next();
-    if (done) return Observable.throw(new Error('premature completion'));
-    let response = scheduler.take(1);
-    let pos = i*chunkSize;
-    port.postMessage({ command: 'blob', blob, pos, id });
-    return response.concatMap(({ lastPos }) => {
-      if (lastPos !== pos) throw new Error('unexpected response');
-      return Observable.of(lastPos);
-    });
-  }).finally(() => {
-    g.return();
-  });
+// take from a generator as fast as scheduler specifies
+export function breakifyStream(gen, scheduler, validator) {
+  return Observable.of(gen.next())
+    .expand(({ value, done }) => {
+      let res = scheduler.take(1);
+      if (validator) {
+        res = res.map((r) => validator(value, r));
+      }
+      return res.map(() => gen.next());
+    })
+    .takeWhile(({ done }) => !done)
+    .finally(() => gen.return())
+    .pluck('value');
 }
 
 
