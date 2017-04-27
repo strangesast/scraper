@@ -23,7 +23,7 @@ export function parseLinesStream(stream) {
     .pluck('value');
 }
 
-function* breakLines(seperator='\r\n') {
+export function* breakLines(seperator='\r\n') {
   let res, buf = '', i;
   while (true) {
     buf += yield res;

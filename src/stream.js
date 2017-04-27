@@ -140,19 +140,43 @@ function readify(readableStream) {
 
 
 export function* breakify(blob, incr=1e5) {
-  let size = blob.size;
-  let pos = 0;
-  do {
-    yield ({ pos, blob: blob.slice(pos, pos+=incr) });
-  } while (pos < size);
+  try {
+    let size = blob.size;
+    let pos = 0;
+    do {
+      yield blob.slice(pos, pos+=incr);
+    } while (pos < size);
+  } finally {
+  }
+}
+
+export function breakifyStream(id, file, port, scheduler, incr=1e5) {
+  let fileSize = file.size;
+  let chunkSize = 72;
+  let chunkCount = Math.ceil(fileSize/chunkSize);
+
+  let g = breakify(file, chunkSize);
+
+  // progress
+  return Observable.range(0, chunkCount).concatMap(i => {
+    let { value: blob, done } = g.next();
+    if (done) return Observable.throw(new Error('premature completion'));
+    let response = scheduler.take(1);
+    let pos = i*chunkSize;
+    port.postMessage({ command: 'blob', blob, pos, id });
+    return response.concatMap(({ lastPos }) => {
+      if (lastPos !== pos) throw new Error('unexpected response');
+      return Observable.of(lastPos);
+    });
+  }).finally(() => {
+    g.return();
+  });
 }
 
 
 export function formatBytes(bytes,decimals) {
   if(bytes == 0) return '0 Bytes';
-  var k = 1000,
-  dm = decimals + 1 || 3,
-  sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+  var k = 1000, dm = decimals + 1 || 3, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
   i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
