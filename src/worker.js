@@ -24,7 +24,7 @@ eachBlobCommands.flatMap(commandStream => {
   let g = breakLines();
   g.next('');
 
-  let parser = parseRoot(false);
+  let parser = parseRoot(true);
   parser.next('');
 
   let test = textStream.map(({ text, pos }) => {

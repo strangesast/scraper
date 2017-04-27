@@ -66,11 +66,22 @@ fileStream
   .subscribe((p) => statsOutput.textContent = p, (err) => console.error(err));
 
 let lastId = 0;
-workerMessages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
+let objects = workerMessages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
   return objects.map(data => ({ data, id: lastId++, file: fileId }));
-}).scan((a, b) => a.concat(b), []).subscribe(objects => {
+}).concatMap(a => Observable.from(a)).share();
+
+//objects.filter(x => x.data.AreaLinks).pluck('data', 'AreaLinks').concatMap(x => Observable.from(x)).take(4).subscribe(console.log.bind(console));
+
+let nest = d3.nest().key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
+
+objects.bufferTime(1000).filter(a => a.length).scan((a, b) => a.concat(b), []).subscribe(objects => {
+  let data = nest.entries(objects);
+  //calculateWells(data);
+  //console.log(data);
   calculateGraph(objects);
 });
+
+objects.filter(x => x.data.PhotoFile).take(1).subscribe(console.log.bind(console));
 
 //function fileToStreams(file, id) {
 //  let blobStream = Observable.from(breakify(file, +chunkSizeInput.value)).share();
@@ -172,7 +183,7 @@ let min = 1000/Math.min(width, height);
 var zoom = d3.zoom().scaleExtent([1, 8]).on('zoom', zoomed);
 
 var drag = d3.drag()
-  .subject((d) => ({ x: d.x - 300, y: d.y }))
+  //.subject((d) => ({ x: d.x - 300, y: d.y }))
   .on('start', dragstarted)
   .on('drag', dragged)
   .on('end', dragended);
@@ -188,20 +199,25 @@ function zoomed() {
 const circleRadius = 14;
 const borderRadius = 2;
 
+function calcR(s) {
+  return Math.sqrt(2*Math.sqrt(3)/Math.PI*s*Math.pow(circleRadius*1.3, 2));
+}
+
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var bodyForce = d3.forceManyBody()
   .strength(-10.0)
-  .distanceMin(circleRadius)
+  //.distanceMin(circleRadius)
 
 var gravityx = d3.forceX(width/2)
   .strength(0.03)
 var gravityy = d3.forceY(height/2)
   .strength(0.03)
 
+var collision = d3.forceCollide().radius((d) => (d) => calcR(d.values.length));
+
 var simulation = d3.forceSimulation()
-  .alphaMin(0.5)
-  .force('collision', d3.forceCollide(circleRadius))
+  .force('collision', collision)
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
   .force('charge', bodyForce)
@@ -217,12 +233,37 @@ svg.append('clipPath')
   .attr('cy', 0)
 
 let container = svg.append('g');
+//container.append('circle').attr('id', 'base').attr('cx', width/2).attr('cy', height/2).attr('fill', 'yellow');
 var node = container.append('g').selectAll('g');
 var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
 
-calculateGraph([]);
+//calculateGraph([]);
+
+/*
+var wells = container.append('g').selectAll('g');
+
+function calculateWells(data) {
+  console.log(data);
+  wells = wells.data(data, ({ key }) => key);
+
+  wells.exit().remove();
+
+  wells = wells.enter()
+    .append('g')
+    .call(drag)
+    .append('circle')
+    .attr('fill', (d, i) => color(i))
+    .attr('r', (d) => calcR(d.values.length))
+    .merge(wells);
+
+  simulation.nodes(data)
+  collision.initialize(simulation.nodes());
+  simulation.alpha(1.0).restart();
+  reset();
+}
+*/
 
 function calculateGraph(people, fileName) {
   node = node.data(people, ({ id }) => id);
@@ -247,14 +288,14 @@ function calculateGraph(people, fileName) {
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
 
-  //nnode.filter(d => d.data.PhotoFile)
-  //  .append('image')
-  //  .attr('x', -circleRadius+borderRadius)
-  //  .attr('y', -circleRadius+borderRadius)
-  //  .attr('height', (circleRadius-borderRadius)*2)
-  //  .attr('width', (circleRadius-borderRadius)*2)
-  //  .attr('clip-path', 'url(#circleClip)')
-  //  .attr('xlink:href', (d) => d.data.PhotoFile);
+  nnode.filter(d => d.data.PhotoFile)
+    .append('image')
+    .attr('x', -circleRadius+borderRadius)
+    .attr('y', -circleRadius+borderRadius)
+    .attr('height', (circleRadius-borderRadius)*2)
+    .attr('width', (circleRadius-borderRadius)*2)
+    .attr('clip-path', 'url(#circleClip)')
+    .attr('xlink:href', (d) => d.data.PhotoFile);
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
@@ -276,13 +317,7 @@ function calculateGraph(people, fileName) {
     .append('img')
     .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
   tableRows.append('p')
-    .text(({ data }) => {
-      if (!data.FullName && data.first) {
-        //console.log('data', data, 'id', id);
-      }
-      let name = data.FullName ? (data.FullName.first + ' ' + data.FullName.last) : (data.first || data.last) ? (data.first + ' ' + data.last) : (data.FirstName || data.LastName) ? (data.FirstName + ' ' + data.LastName) : 'fuck';
-      return name;
-    })
+    .text(({ data }) => [data['First Name'], data['Middle Name'], data['Last Name']].filter(s => s).join(' '));
 
 
   node = nnode.merge(node);
@@ -291,10 +326,11 @@ function calculateGraph(people, fileName) {
   //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
   simulation.nodes(people)//.on('tick', ticked);
   simulation.alpha(1.0).restart();
+  reset();
 
   return node;
 }
-//
+
 //async function loadImage(obj, element, callback) {
 //  if (obj.data.PhotoFile) {
 //    let data = obj.data.PhotoFile;
@@ -322,19 +358,26 @@ function calculateGraph(people, fileName) {
 //  callback();
 //}
 
-let i = 0;
+function reset() {
+  i = 0;
+}
+var i = 0;
 const maxSeqTicks = 200;
 function ticked() {
   if (i++ > maxSeqTicks) {
     simulation.stop();
     i = 0;
   }
+  //wells.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
   node.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
   //node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
 
 function dragstarted(d) {
-  if (!event.active) simulation.alphaTarget(1.0).restart();
+  if (!event.active) {
+    simulation.alphaTarget(1.0).restart();
+    reset();
+  }
   let n = this;
   node.style('opacity', function(d) {
     return (n === this) ? 1.0 : 0.4;
@@ -351,6 +394,7 @@ function dragstarted(d) {
 function dragged(d) {
   d.fx = event.x;
   d.fy = event.y;
+  reset();
 }
 
 function dragended(d) {

@@ -61,6 +61,112 @@ export function breakStreamIntoFullLines(textStream, seperator) {
   }).concatMap(lines => Observable.from(lines));
 }
 
+const keyNames = {
+  address:     'Address',
+  building:    'Building',
+  city:        'City',
+  department:  'Department',
+  download:    'Download',
+  email:       'Email Address',
+  embossed:    'Embossed Number',
+  external:    'External System ID',
+  first:       'First Name',
+  interal:     'Internal Number',
+  last:        'Last Name',
+  load:        'Load Date',
+  middle:      'Middle Name',
+  partition:   'Partition',
+  phone:       'Phone',
+  roles:       'Roles',
+  state:       'State',
+  status:      'Status',
+  title:       'Title',
+  tokenStatus: 'Token Status',
+  token:       'Token Unique',
+  phone:       'Work Phone',
+  zip:         'Zip'
+};
+
+function transformObjectKeys(object) {
+  let obj = {};
+  for (let key in object) {
+    switch (key) {
+      case 'AreaLinks':
+        obj[key] = object[key];
+        break;
+      case 'PhotoFile':
+        obj[key] = object[key];
+        break;
+      case 'CardNumber2':
+        if (obj[keyNames.embossed]) break;
+      case 'CardNumber':
+        obj[keyNames.embossed] = object[key];
+        obj[keyNames.interal]  = object[key];
+        obj[keyNames.token]   = object[key];
+        break;
+      case 'Department':
+        obj[keyNames.department] = object[key];
+        break;
+      case 'FirstName':
+        obj[keyNames.first] = object[key];
+        break;
+      case 'LastName':
+        obj[keyNames.last] = object[key];
+        break;
+      case 'FullName':
+        let { first, last } = object[key];
+        if (first) {
+          obj[keyNames.first] = first;
+        }
+        if (last) {
+          obj[keyNames.last] = last;
+        }
+        break;
+      case 'MiddleName':
+        obj[keyNames.middle] = object[key];
+        break;
+      case 'JobTitle':
+        obj[keyNames.title] = object[key];
+        break;
+      case 'OfficeLocation':
+        obj[keyNames.building] = object[key];
+        break;
+      case 'State':
+        let s = Number(object[key]);
+        if (isNaN(s) || (s != 0 && s != 1)) {
+          obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
+        } else {
+          obj[keyNames.status] = s;
+          obj[keyNames.tokenStatus] = s == 1 ? 1 : 2;
+        }
+        break;
+      case 'WorkPhone':
+        obj[keyNames.phone] = object[key];
+        break;
+      //case 'ActivationDate':
+      //case 'Alias':
+      //case 'BlobTemplate':
+      //case 'CardType':
+      //case 'CreatedBy':
+      //case 'CreateTime':
+      //case 'FipsPersonId':
+      //case 'Info1':
+      //case 'InstanceId':
+      //case 'LastChange':
+      //case 'LastChangedBy':
+      //case 'Object':
+      //case 'Owner':
+      //case 'RefTemplate':
+      //case 'SiteCode':
+      //case 'StartDate':
+      //case 'TimeLocked':
+      //case 'Type':
+      //case 'Visitor':
+    }
+  }
+  return obj;
+}
+
 
 export function* parseRoot(includePhotos=false) {
   let line = yield;
@@ -91,6 +197,7 @@ export function* parseRoot(includePhotos=false) {
             break;
           case 'Object':
             let object = yield *parseObject(includePhotos);
+            object = transformObjectKeys(object);
             value = { object };
             break;
           case 'Path':
@@ -147,7 +254,9 @@ export function* parseDictionary(keyName) {
 
 
 export function parseRow(string) {
-  return string.trim().split(':').map(s => s.trim());
+  let i = string.lastIndexOf(';0');
+  if (i > -1) string = string.substring(0, i);
+  return string.trim().split(/\s:\s/).map(s => s.trim());
 }
 
 
@@ -249,10 +358,26 @@ export function* skipPhotoFile() {
   }
 }
 
+function areaLinksComparer(a, b) {
+  let r = 0;
+  for (let i=0; i < a.length; i++) {
+    r = a[i] < b[i] ? -1 : a[i] > b[i] ? 1 : 0;
+    if (r != 0) break;
+  }
+  return r;
+};
 
 export function* parseAreaLinks() {
   let line = yield;
-  return [];
+  let links = [];
+  try {
+    while (!/^\s*EndAreaLinks$/.test(line)) {
+      //links.push(line);
+      links.push(parseRow(line));
+      line = yield;
+    }
+  } finally {}
+  return links.sort(areaLinksComparer);
 }
 
 // for testing
