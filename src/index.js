@@ -10,10 +10,11 @@ let chunkSizeInput = document.getElementById('chunk-size');
 let statsOutput = document.getElementById('stats');
 
 let MyWorker = require('worker-loader!./worker');
-let worker = new MyWorker();
-let workerMessages = Observable.fromEvent(worker, 'message').pluck('data').filter(d => d && d.command);
+let worker1 = new MyWorker();
+let worker2 = new MyWorker();
 
-let eachBlobCommands = setupBlobCommandStream(worker, false);
+let worker1Messages = Observable.fromEvent(worker1, 'message').pluck('data').filter(d => d && d.command);
+let worker2Messages = Observable.fromEvent(worker2, 'message').pluck('data').filter(d => d && d.command);
 
 var fileInput = document.getElementById('file-upload');
 
@@ -26,7 +27,7 @@ function isCommand(_command) {
 };
 
 function* blobToMessages(id, file, chunkSize) {
-  let port = worker; // temp
+  let port = worker1; // temp
   let command = 'blob';
   let g = breakify(file, chunkSize);
   let { done, value } = g.next();
@@ -51,7 +52,7 @@ fileStream
     let start = performance.now();
     idToName[id] = file.name;
   
-    let myWorkerMessages = workerMessages.filter(({ id: _id }) => _id === id);
+    let myWorkerMessages = worker1Messages.filter(({ id: _id }) => _id === id);
     let nextMessages = myWorkerMessages.filter(isCommand('blobNext'));
   
     let processing = breakifyStream(blobToMessages(id, file, +chunkSizeInput.value), nextMessages, nextResponseValidator);
@@ -66,117 +67,37 @@ fileStream
   .subscribe((p) => statsOutput.textContent = p, (err) => console.error(err));
 
 let lastId = 0;
-let objects = workerMessages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
+let objects = worker1Messages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
   return objects.map(data => ({ data, id: lastId++, file: fileId }));
 }).concatMap(a => Observable.from(a)).share();
 
-//objects.filter(x => x.data.AreaLinks).pluck('data', 'AreaLinks').concatMap(x => Observable.from(x)).take(4).subscribe(console.log.bind(console));
-
 let nest = d3.nest().key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
 
-objects.bufferTime(1000).filter(a => a.length).scan((a, b) => a.concat(b), []).subscribe(objects => {
-  let data = nest.entries(objects);
-  //calculateWells(data);
-  //console.log(data);
+objects.bufferTime(50).filter(a => a.length).scan((a, b) => a.concat(b), []).subscribe(objects => {
+  //let data = nest.entries(objects);
+
   calculateGraph(objects);
 });
 
-objects.filter(x => x.data.PhotoFile).take(1).subscribe(console.log.bind(console));
+/* too much memory
+let withPhoto = objects.filter(x => x.data.PhotoFile);
 
-//function fileToStreams(file, id) {
-//  let blobStream = Observable.from(breakify(file, +chunkSizeInput.value)).share();
-//  let length = file.size;
-//
-//  let responseStream = eachBlobCommands.filter(({ id: _id }) => id == _id);
-//
-//  let objectFoundMessages = responseStream.filter(({ command }) => command === 'blobObjectFound');
-//  let objectsFound = objectFoundMessages.pluck('object');
-//
-//  let nextCommands = responseStream.filter(({ command }) => command === 'blobNext');
-//
-//  let messages = blobStream.concatMap(({ blob, pos }) => {
-//    let response = nextCommands.take(1)
-//      .flatMap(({ lastPos }) =>
-//        lastPos === pos ?
-//          Observable.empty() :
-//          Observable.throw(new Error('unexpected position')));
-//    let request = { command: 'blob', blob, pos, length, id };
-//    return Observable.of(request).concat(response);
-//  }).share();
-//
-//  let progress = messages.map(({pos}) => [pos, length]);
-//
-//  return { messages, progress, objects: objectsFound, fileName: file.name, fileModified: file.lastModified, fileId: id };
-//};
-//
-//let main = fileStream.map(fileToStreams);
-//
-//function sendMessage(message) {
-//  return worker.postMessage(message);
-//};
-//
-//main.pluck('messages').mergeAll().subscribe(
-//  sendMessage,
-//  err => console.error(err),
-//  _ => console.log('complete')
-//);
-//
-//let lastObjectId = -1;
-//let objects = main.mergeMap(({ objects, fileId }) => objects.map(data => ({
-//  id: ++lastObjectId,
-//  data,
-//  file: fileId
-//}))).share();
-//
-//function getName(data) {
-//}
-//
-//objects.filter(({ data: { FullName, first, last, FirstName, LastName }}) => !FullName && !first && !last && !FirstName && !LastName).take(10).subscribe(console.log.bind(console));
-////objects.filter(({ data: { PhotoFile }}) => PhotoFile).pluck('data', 'PhotoFile').subscribe(data => window.open(data));
-//
-//let objectCount = objects.mapTo(1).scan((a, b) => a+b, 0);
-//
-//let progress = main.pluck('progress')
-//  .switchMap(stream => {
-//    let start = Date.now();
-//    let lastt = start;
-//    let lastp = 0;
-//    let pipe = stream.map(([p, of]) => {
-//      return [Date.now(), p, p/of];
-//    });
-//    return pipe.pairwise()
-//      .map(([[a, b, c], [d, e, f]]) => [1000*(e-b)/(d-a), f])
-//      .throttleTime(100)
-//      .startWith([0, 0])
-//      .finally(() => statsOutput.textContent = statsOutput.textContent+`| Total time: ${ ((Date.now() - start)/1000).toFixed(4) }s`);
-//  });
-//
-//progress.withLatestFrom(objectCount).startWith([[0, 0], 0]).subscribe(
-//  ([[rate, percentage], o]) => {
-//    statsOutput.textContent = `found ${ o } | ${ formatPercentage(percentage) } | ${ formatBytes(rate)+'/s' }`
-//  },
-//  (err) => console.error(err),
-//  _ => console.log('complete')
-//);
-//
-//
-//let addToObjectArray = objects
-//  .bufferTime(100)
-//  .filter(a => a.length > 0)
-//
-//let objectArray = addToObjectArray
-//  .scan((a, b) => a.concat(b), [])
-//
-//let addToGraph = objectArray
-//  .map(calculateGraph)
-//  .subscribe(data => {
-//    //console.log('data', data);
-//  });
-//
-var tableElement = d3.select(document.body.querySelector('.table'));
+let photoMessages = worker2Messages.filter(isCommand('photoNext'));
 
-var svgElement = document.body.querySelector('svg');
-var svg = d3.select(svgElement);
+withPhoto.take(1).expand(({ data, id: sentId }) => {
+  let response = photoMessages.take(1);
+
+  worker2.postMessage({ command: 'photo', photo: data.PhotoFile, id: sentId });
+
+  return response.flatMap(({ id: recId, url }) => {
+    node.filter(`[data-id="${ recId }"]`).select('image').attr('xlink:href', url);
+    table.filter(`[data-id="${ recId }"]`).select('img').attr('src', url);
+    return withPhoto.take(1);
+  });
+}).subscribe();
+*/
+
+var svg = d3.select(document.body.querySelector('svg'));
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
@@ -194,7 +115,6 @@ svg.call(zoom);
 function zoomed() {
   container.attr('transform', d3.event.transform);
 }
-
 
 const circleRadius = 14;
 const borderRadius = 2;
@@ -233,13 +153,10 @@ svg.append('clipPath')
   .attr('cy', 0)
 
 let container = svg.append('g');
-//container.append('circle').attr('id', 'base').attr('cx', width/2).attr('cy', height/2).attr('fill', 'yellow');
 var node = container.append('g').selectAll('g');
 var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
 let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
-
-//calculateGraph([]);
 
 /*
 var wells = container.append('g').selectAll('g');
@@ -275,10 +192,6 @@ function calculateGraph(people, fileName) {
   let nnode = node.enter().append('g')
     .attr('data-id', ({id}) => id)
     .call(drag)
-    // too slow
-    //.each(function(d) {
-    //  queue.defer(loadImage, d, this);
-    //})
 
   nnode.append('circle')
     .attr('r', circleRadius-borderRadius/2)
@@ -288,14 +201,16 @@ function calculateGraph(people, fileName) {
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
 
-  nnode.filter(d => d.data.PhotoFile)
+  /*
+  nnode
     .append('image')
     .attr('x', -circleRadius+borderRadius)
     .attr('y', -circleRadius+borderRadius)
     .attr('height', (circleRadius-borderRadius)*2)
     .attr('width', (circleRadius-borderRadius)*2)
     .attr('clip-path', 'url(#circleClip)')
-    .attr('xlink:href', (d) => d.data.PhotoFile);
+    .attr('xlink:href', (d) => d.data.PhotoFileResized);
+  */
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
@@ -311,24 +226,30 @@ function calculateGraph(people, fileName) {
   let tableRows = ntable
     .attr('data-id', ({id}) => id)
 
-  tableRows//.filter(d => d.data.PhotoFile)
+  tableRows
     .append('div')
     .attr('class', 'profile')
     .append('img')
-    .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
+    .attr('src', (d) => d.data.PhotoFileResized || 'assets/placeholder.png');
+
   tableRows.append('p')
     .text(({ data }) => [data['First Name'], data['Middle Name'], data['Last Name']].filter(s => s).join(' '));
-
 
   node = nnode.merge(node);
   table = ntable.merge(table);
 
-  //node.append('title').text(d => ['first', 'last'].map(n => d.object[n]).join(', '));
-  simulation.nodes(people)//.on('tick', ticked);
+  simulation.nodes(people);
   simulation.alpha(1.0).restart();
   reset();
 
   return node;
+}
+
+function loadImage(d, element, callback) {
+  setTimeout(() => {
+    console.log('id', d.id);
+    callback(d.id)
+  }, 1000);
 }
 
 //async function loadImage(obj, element, callback) {
@@ -361,6 +282,7 @@ function calculateGraph(people, fileName) {
 function reset() {
   i = 0;
 }
+
 var i = 0;
 const maxSeqTicks = 200;
 function ticked() {
@@ -370,8 +292,8 @@ function ticked() {
   }
   //wells.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
   node.attr('transform', (d) => `translate(${ d.x }, ${ d.y })`);
-  //node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 }
+
 
 function dragstarted(d) {
   if (!event.active) {
@@ -391,11 +313,13 @@ function dragstarted(d) {
   d.fy = d.y;
 }
 
+
 function dragged(d) {
   d.fx = event.x;
   d.fy = event.y;
   reset();
 }
+
 
 function dragended(d) {
   if (!event.active) simulation.alphaTarget(1.0);
