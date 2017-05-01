@@ -30,8 +30,8 @@
         <label class="toggle" for="toggle1">Export Settings</label>
         <div id="export-settings" class="body settings">
           <div>
-            <button id="export">Generate Output</button>
-            <a disabled id="download">Download</a>
+            <label for="output-filename">Output Filename</label>
+            <input id="output-filename" type="text" value="dump.csv">
           </div>
           <div class="cols">
             <div class="col header">
@@ -55,6 +55,13 @@
       <div class="panel">
         <label class="button" for="file-upload">Add File</label>
         <input type="file" id="file-upload"></input>
+      </div>
+      <span class="heading">Output</span>
+      <div class="panel">
+        <div>
+          <span class="button" id="export">Generate Output</span>
+          <a disabled id="download">Download</a>
+        </div>
       </div>
       <span class="heading">Objects</span>
       <div class="table"></div>

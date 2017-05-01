@@ -9,6 +9,7 @@ import * as d3 from 'd3';
 let chunkSizeInput = document.getElementById('chunk-size');
 let includePhotosCheckbox = document.getElementById('include-photos');
 let displayPhotosCheckbox = document.getElementById('display-photos');
+let outputFilenameInput = document.getElementById('output-filename');
 let statsOutput = document.getElementById('import0');
 let generateOutput = document.getElementById('export');
 let downloadOutput = document.getElementById('download');
@@ -197,7 +198,8 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
   })
   .subscribe(output => {
     downloadOutput.disabled = false;
-    downloadOutput.setAttribute('download', 'dump.csv');
+    let fileName = outputFilenameInput.value || 'dump.csv';
+    downloadOutput.setAttribute('download', fileName);
     downloadOutput.setAttribute('href', output);
   });
 
