@@ -8,6 +8,7 @@ import * as d3 from 'd3';
 
 let chunkSizeInput = document.getElementById('chunk-size');
 let includePhotosCheckbox = document.getElementById('include-photos');
+let displayPhotosCheckbox = document.getElementById('display-photos');
 let statsOutput = document.getElementById('import0');
 let generateOutput = document.getElementById('export');
 let downloadOutput = document.getElementById('download');
@@ -113,48 +114,83 @@ objectArray.subscribe(objects => {
 
 const cols = [
   { name: 'External System ID', include: true, defaultValue: null },
-  { name: 'Load Date', include: true, defaultValue: null },
-  { name: 'First Name', include: true, defaultValue: null },
-  { name: 'Last Name', include: true, defaultValue: null },
-  { name: 'Middle Name', include: true, defaultValue: null },
-  { name: 'Roles', include: true, defaultValue: null },
-  { name: 'Status', include: true, defaultValue: null },
-  { name: 'Partition', include: true, defaultValue: null },
-  { name: 'Address', include: true, defaultValue: null },
-  { name: 'City', include: true, defaultValue: null },
-  { name: 'State', include: true, defaultValue: null },
-  { name: 'Zip', include: true, defaultValue: null },
-  { name: 'Phone', include: true, defaultValue: null },
-  { name: 'Work Phone', include: true, defaultValue: null },
-  { name: 'Email Address', include: true, defaultValue: null },
-  { name: 'Title', include: true, defaultValue: null },
-  { name: 'Department', include: true, defaultValue: null },
-  { name: 'Building', include: true, defaultValue: null },
-  { name: 'Embossed Number', include: true, defaultValue: null },
-  { name: 'Token Unique', include: true, defaultValue: null },
-  { name: 'Internal Number', include: true, defaultValue: null },
-  { name: 'Download', include: true, defaultValue: null },
-  { name: 'Token Status', include: true, defaultValue: null }
+  { name: 'Load Date',          include: true, defaultValue: null },
+  { name: 'First Name',         include: true, defaultValue: null },
+  { name: 'Last Name',          include: true, defaultValue: null },
+  { name: 'Middle Name',        include: true, defaultValue: null },
+  { name: 'Roles',              include: true, defaultValue: null },
+  { name: 'Status',             include: true, defaultValue: '0' },
+  { name: 'Partition',          include: true, defaultValue: null },
+  { name: 'Address',            include: true, defaultValue: null },
+  { name: 'City',               include: true, defaultValue: null },
+  { name: 'State',              include: true, defaultValue: null },
+  { name: 'Zip',                include: true, defaultValue: null },
+  { name: 'Phone',              include: true, defaultValue: null },
+  { name: 'Work Phone',         include: true, defaultValue: null },
+  { name: 'Email Address',      include: true, defaultValue: null },
+  { name: 'Title',              include: true, defaultValue: null },
+  { name: 'Department',         include: true, defaultValue: null },
+  { name: 'Building',           include: true, defaultValue: null },
+  { name: 'Embossed Number',    include: true, defaultValue: null },
+  { name: 'Token Unique',       include: true, defaultValue: null },
+  { name: 'Internal Number',    include: true, defaultValue: null },
+  { name: 'Download',           include: true, defaultValue: 'f' },
+  { name: 'Token Status',       include: true, defaultValue: '2' }
 ];
 
 let exportSettings = d3.select(document.getElementById('export-settings'));
-let row = exportSettings.select('.cols').selectAll('.col:not(.header)').data(cols).enter().append('div').attr('class', 'col');
-row.append('span').attr('class', 'name').attr('title', d => d.name).text(d => d.name);
-row.append('input').attr('class', 'include').attr('type', 'checkbox').attr('checked', d => !!d.include);
-row.append('input').attr('class', 'default').attr('type', 'text').attr('value', d => d.defaultValue);
+let defaultRows = exportSettings.select('.cols').selectAll('.col:not(.header)').data(cols).enter().append('div').attr('class', 'col');
+defaultRows.append('span').attr('class', 'name').attr('title', d => d.name).text(d => d.name);
+defaultRows.append('input').attr('class', 'include').attr('type', 'checkbox').attr('disabled', true).attr('checked', d => !!d.include);
+defaultRows.append('input').attr('class', 'default').attr('type', 'text').attr('value', d => d.defaultValue);
 
+function getDefault() {
+  let obj = {};
+  defaultRows.select('.default').each(function(v) {
+    let val = this.value;
+    if (this.value != '') {
+      obj[v.name] = val;
+    }
+  });
+  return obj;
+}
 
 Observable.fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
+    let defaults = getDefault();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
-      return values.map(obj => Object.assign(obj.data, { Roles }));
+      return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
     let loadDate = new Date().toLocaleString();
     let text = arr.map((data, i) => {
-      return [i+1, loadDate, data['First Name'], data['Last Name'], data['Middle Name'], data['Roles'], data['Status'], null, null, null, null, null, null, null, null, data['Title'], data['Department'], data['Building'], data['Embossed Number'], data['Token Unique'], data['Internal Number'], data['Download'], data['Token Status']].map(v => v != null ? JSON.stringify(v) : '').join(',');
+      return [
+        i+1,
+        loadDate,
+        data['First Name'],
+        data['Last Name'],
+        data['Middle Name'],
+        data['Roles'],
+        data['Status'],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        data['Title'],
+        data['Department'],
+        data['Building'],
+        data['Embossed Number'],
+        data['Token Unique'],
+        data['Internal Number'],
+        data['Download'],
+        data['Token Status']
+      ].map(v => v !== undefined ? JSON.stringify(v) : '').join(',');
     }).join('\r\n');
     let blob = new Blob([text], { type: 'text/plain' });
     return URL.createObjectURL(blob);
@@ -287,14 +323,16 @@ function calculateGraph(people, fileName) {
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
 
-  nnode
-    .append('image')
-    .attr('x', -circleRadius+borderRadius)
-    .attr('y', -circleRadius+borderRadius)
-    .attr('height', (circleRadius-borderRadius)*2)
-    .attr('width', (circleRadius-borderRadius)*2)
-    .attr('clip-path', 'url(#circleClip)')
-    .attr('xlink:href', (d) => d.data.PhotoFileResized || 'assets/placeholder.png');
+  if (displayPhotosCheckbox.checked) {
+    nnode
+      .append('image')
+      .attr('x', -circleRadius+borderRadius)
+      .attr('y', -circleRadius+borderRadius)
+      .attr('height', (circleRadius-borderRadius)*2)
+      .attr('width', (circleRadius-borderRadius)*2)
+      .attr('clip-path', 'url(#circleClip)')
+      .attr('xlink:href', (d) => d.data.PhotoFile || 'assets/placeholder.png');
+  }
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
@@ -314,7 +352,7 @@ function calculateGraph(people, fileName) {
     .append('div')
     .attr('class', 'profile')
     .append('img')
-    .attr('src', (d) => d.data.PhotoFileResized || 'assets/placeholder.png');
+    .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
 
   tableRows.append('p')
     .text(({ data }) => [data['First Name'], data['Middle Name'], data['Last Name']].filter(s => s).join(' '));

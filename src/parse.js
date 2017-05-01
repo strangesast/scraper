@@ -71,7 +71,7 @@ const keyNames = {
   embossed:    'Embossed Number',
   external:    'External System ID',
   first:       'First Name',
-  interal:     'Internal Number',
+  internal:    'Internal Number',
   last:        'Last Name',
   load:        'Load Date',
   middle:      'Middle Name',
@@ -101,7 +101,7 @@ function transformObjectKeys(object) {
         if (obj[keyNames.embossed]) break;
       case 'CardNumber':
         obj[keyNames.embossed] = object[key];
-        obj[keyNames.interal]  = object[key];
+        obj[keyNames.internal] = object[key];
         obj[keyNames.token]   = object[key];
         break;
       case 'Department':
@@ -132,14 +132,14 @@ function transformObjectKeys(object) {
         obj[keyNames.building] = object[key];
         break;
       case 'State':
-        let s = +object[key];
-        if (isNaN(s) || (s != 0 && s != 1)) {
-          obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
-        } else {
+        let s = object[key];
+        //if (isNaN(s) || (s != 0 && s != 1)) {
+        //  obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
+        //} else {
           obj[keyNames.status] = s;
-          obj[keyNames.tokenStatus] = s == 1 ? 1 : 2;
-          obj[keyNames.download] = s == 1 ? 't' : 'f';
-        }
+          obj[keyNames.tokenStatus] = (s == 1 ? 1 : 2);
+          obj[keyNames.download] = (s == 1 ? 't' : 'f');
+        //}
         break;
       case 'WorkPhone':
         obj[keyNames.phone] = object[key];
