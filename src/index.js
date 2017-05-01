@@ -7,7 +7,8 @@ import { setupBlobCommandStream, breakify, breakifyStream, streamObjectsFromBlob
 import * as d3 from 'd3';
 
 let chunkSizeInput = document.getElementById('chunk-size');
-let statsOutput = document.getElementById('stats');
+let includePhotosCheckbox = document.getElementById('include-photos');
+let statsOutput = document.getElementById('import0');
 let generateOutput = document.getElementById('export');
 let downloadOutput = document.getElementById('download');
 
@@ -28,14 +29,14 @@ function isCommand(_command) {
   return ({ command }) => command === _command;
 };
 
-function* blobToMessages(id, file, chunkSize) {
+function* blobToMessages(id, file, chunkSize, includePhotos) {
   let port = worker1; // temp
   let command = 'blob';
   let g = breakify(file, chunkSize);
   let { done, value } = g.next();
   while (!done) {
     let { pos, blob } = value;
-    port.postMessage({ command, blob, pos, id, done });
+    port.postMessage({ command, blob, pos, id, done, includePhotos });
     yield pos;
     ({ done, value } = g.next());
   }
@@ -57,16 +58,43 @@ fileStream
     let myWorkerMessages = worker1Messages.filter(({ id: _id }) => _id === id);
     let nextMessages = myWorkerMessages.filter(isCommand('blobNext'));
   
-    let processing = breakifyStream(blobToMessages(id, file, +chunkSizeInput.value), nextMessages, nextResponseValidator);
+    let chunkSize = +chunkSizeInput.value;
+    let includePhotos = includePhotosCheckbox.checked;
+
+    let processing = breakifyStream(blobToMessages(id, file, chunkSize, includePhotos), nextMessages, nextResponseValidator);
   
-    //let objects = myWorkerMessages.filter(isCommand('blobObjectsFound')).pluck('objects');
-    //let objectsCount = objects.pluck('length').scan((a, b) => a+b, 0).startWith(0);
-  
-    //return processing.withLatestFrom(objectsCount).map(([p, n]) => file.name + ' ' + formatPercentage(p/size) + ' ' + n + ' objects').finally(() => console.log('complete', ((Date.now() - start)/1000).toFixed(4)));
-    return processing.map(p => file.name + ' ' + formatPercentage(p/size) + ' ' + ((performance.now() - start)/1000).toFixed(4) + 's');
+    return processing.map(p => ({ file: file.name, pos: Math.min(p+chunkSize, size), size, time: performance.now() - start }));
   })
   .mergeAll(3)
-  .subscribe((p) => statsOutput.textContent = p, (err) => console.error(err));
+  .scan((a, b) => {
+    // keep the latest point of each file
+    for (let i=0; i < a.length; i++) {
+      if (a[i].file == b.file) {
+        a[i] = b;
+        return a;
+      }
+    }
+    return a.concat(b);
+  }, [])
+  .map(v => updateImportProgress(v)) // ugly
+  .subscribe(null, (err) => console.error(err));
+
+let imports = d3.select(document.getElementById('imports')).selectAll('.import');
+let fileIds = {};
+let lastFileId = -1;
+function updateImportProgress(data) {
+  imports = imports.data(data, ({ file }) => file);
+
+  let n = imports.enter().append('div').attr('class', 'import');
+  n.append('span').attr('class', 'name').text((d) => d.file);
+  n.append('progress').attr('value', 0);
+  n.append('span').attr('class', 'rate')
+
+  imports = n.merge(imports)
+    
+  imports.select('progress').attr('value', d => d.pos/d.size);
+  imports.select('.rate').text(d => formatBytes(d.pos/d.time*1000) + '/s');
+}
 
 let lastId = 0;
 let objects = worker1Messages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
@@ -81,33 +109,40 @@ objectArray.subscribe(objects => {
   //let data = nest.entries(objects);
 
   calculateGraph(objects);
-});
+}, (err) => console.error(err));
 
 const cols = [
-  'External System ID',
-  'Load Date',
-  'First Name',
-  'Last Name',
-  'Middle Name',
-  'Roles',
-  'Status',
-  'Partition',
-  'Address',
-  'City',
-  'State',
-  'Zip',
-  'Phone',
-  'Work Phone',
-  'Email Address',
-  'Title',
-  'Department',
-  'Building',
-  'Embossed Number',
-  'Token Unique',
-  'Internal Number',
-  'Download',
-  'Token Status'
+  { name: 'External System ID', include: true, defaultValue: null },
+  { name: 'Load Date', include: true, defaultValue: null },
+  { name: 'First Name', include: true, defaultValue: null },
+  { name: 'Last Name', include: true, defaultValue: null },
+  { name: 'Middle Name', include: true, defaultValue: null },
+  { name: 'Roles', include: true, defaultValue: null },
+  { name: 'Status', include: true, defaultValue: null },
+  { name: 'Partition', include: true, defaultValue: null },
+  { name: 'Address', include: true, defaultValue: null },
+  { name: 'City', include: true, defaultValue: null },
+  { name: 'State', include: true, defaultValue: null },
+  { name: 'Zip', include: true, defaultValue: null },
+  { name: 'Phone', include: true, defaultValue: null },
+  { name: 'Work Phone', include: true, defaultValue: null },
+  { name: 'Email Address', include: true, defaultValue: null },
+  { name: 'Title', include: true, defaultValue: null },
+  { name: 'Department', include: true, defaultValue: null },
+  { name: 'Building', include: true, defaultValue: null },
+  { name: 'Embossed Number', include: true, defaultValue: null },
+  { name: 'Token Unique', include: true, defaultValue: null },
+  { name: 'Internal Number', include: true, defaultValue: null },
+  { name: 'Download', include: true, defaultValue: null },
+  { name: 'Token Status', include: true, defaultValue: null }
 ];
+
+let exportSettings = d3.select(document.getElementById('export-settings'));
+let row = exportSettings.select('.cols').selectAll('.col:not(.header)').data(cols).enter().append('div').attr('class', 'col');
+row.append('span').attr('class', 'name').attr('title', d => d.name).text(d => d.name);
+row.append('input').attr('class', 'include').attr('type', 'checkbox').attr('checked', d => !!d.include);
+row.append('input').attr('class', 'default').attr('type', 'text').attr('value', d => d.defaultValue);
+
 
 Observable.fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
   .map(([e, arr]) => {
@@ -252,7 +287,6 @@ function calculateGraph(people, fileName) {
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
 
-  /*
   nnode
     .append('image')
     .attr('x', -circleRadius+borderRadius)
@@ -260,8 +294,7 @@ function calculateGraph(people, fileName) {
     .attr('height', (circleRadius-borderRadius)*2)
     .attr('width', (circleRadius-borderRadius)*2)
     .attr('clip-path', 'url(#circleClip)')
-    .attr('xlink:href', (d) => d.data.PhotoFileResized);
-  */
+    .attr('xlink:href', (d) => d.data.PhotoFileResized || 'assets/placeholder.png');
 
   let ntable = table.enter().append('div').attr('class', 'row')
     .on('mouseenter', function(d) {
@@ -270,7 +303,7 @@ function calculateGraph(people, fileName) {
       node.filter(`[data-id="${ d.id }"]`).style('opacity', 1.0);
     })
     .on('mouseleave', function(d) {
-      d3.select(this).style('background-color', 'white');
+      d3.select(this).style('background-color', null);
       node.style('opacity', 1.0);
     })
 
@@ -378,5 +411,5 @@ function dragended(d) {
   d.fx = null;
   d.fy = null;
   node.style('opacity', 1.0);
-  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'white');
+  table.filter(`[data-id="${ d.id }"]`).style('background-color', null);
 }

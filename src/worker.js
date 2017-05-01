@@ -19,6 +19,7 @@ eachBlobCommands.flatMap(stream => {
   let [validBlobCommands, invalidBlobCommands] = stream
     .partition(({ command }) => command === 'blob' || command === 'blobCancel');
   
+  let parser;
   let input = validBlobCommands
     .filter(({ command }) => command === 'blob')
     .takeWhile(({ done }) => !done)
@@ -26,13 +27,17 @@ eachBlobCommands.flatMap(stream => {
   let cancel = validBlobCommands
     .filter(({ command }) => command === 'blobCancel');
 
-  let textStream = readBlobStreamAsText(input);
-
   let g = breakLines();
   g.next('');
 
-  let parser = parseRoot(false);
-  parser.next('');
+  let textStream = readBlobStreamAsText(input.take(1).concatMap(message => {
+    let { includePhotos } = message;
+    parser = parseRoot(!!includePhotos);
+    parser.next('');
+    return Observable.of(message).concat(input)
+      .finally(() => parser.return()); // this doesn't actually work
+  }));
+  //let textStream = readBlobStreamAsText(test);
 
   let parseText = textStream.map(({ text, pos }) => {
     let { value: lines, done } = g.next(text);
@@ -52,7 +57,6 @@ eachBlobCommands.flatMap(stream => {
     return pos;
   }).finally(() => {
     g.return();
-    parser.return();
   });
 
   let nextMessages = parseText.map(lastPos => {
