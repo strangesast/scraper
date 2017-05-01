@@ -14,16 +14,21 @@ body {
 
 @border-color: #e4e4e4;
 
+
 .button {
   box-sizing: border-box;
   display: inline-block;
   padding: 8px;
   border: 1px solid @border-color;
   transition: background-color 0.1s ease;
+  background-color: unset;
+  font-size: 1em;
+  cursor: pointer;
   &:hover {
     background-color: @border-color;
   }
 }
+
 
 input[type="file"] {
   display: none;
