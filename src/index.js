@@ -90,7 +90,7 @@ let objects = workerMessages
   .scan((a, b) => a.concat(b), []);
 
 let nest = d3.nest()
-  .key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
+  .key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('\0')).join('\n') : 'uncategorized');
 
 objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 
@@ -139,15 +139,19 @@ function getDefaults() {
 var generateOutput = document.getElementById('export');
 var outputFilenameInput = document.getElementById('output-filename');
 var downloadOutput = document.getElementById('download');
+var includeKeymapCheckbox = document.getElementById('include-keymap');
 Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
+    let keyMap = {};
     let defaults = getDefaults();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
+      keyMap[Roles] = key.split('\n').map(str => str.split('\0'));
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
+    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].map(group => group[0])).join(',')).join('\r\n');
     let loadDate = new Date().toLocaleString();
     let text = arr.map((data, i) => {
       return [
@@ -176,7 +180,12 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
         data['Token Status']
       ].map(v => v !== undefined ? JSON.stringify(v) : '').join(',');
     }).join('\r\n');
-    let blob = new Blob([text], { type: 'text/plain' });
+    let blob;
+    if (includeKeymapCheckbox.checked) {
+      blob = new Blob([keyText, '\r\n'.repeat(2), text], { type: 'text/plain' });
+    } else {
+      blob = new Blob([text], { type: 'text/plain' });
+    }
     return URL.createObjectURL(blob);
   })
   .subscribe(output => {
