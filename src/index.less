@@ -90,22 +90,22 @@ input[type="file"] {
           &.header > * {
             font-style: italic;
           }
-          .name, .include, .default {
+          .name, .default {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           }
           .name {
-            width: 50%;
-          }
-          .include {
-            width: 20%;
-            margin: 0;
+            width: 60%;
           }
           .default {
-            width: 30%;
+            width: 40%;
             box-sizing: border-box;
             margin: 0;
+          }
+          input.default:not(:valid) {
+            border: 1px solid lightgrey;
+            background-color: @border-color;
           }
         }
       }
@@ -166,30 +166,42 @@ input[type="file"] {
   .table {
     width: 100%;
     flex-grow: 1;
-    .row {
-      height: 50px;
-      padding: 10px;
-      box-sizing: border-box;
-      display: flex;
-      & > *:not(:first-child) {
-        margin-left: 8px;
-      }
-      position: relative;
-      flex-direction: row;
-      align-items: center;
-      .profile {
-        height: 100%;
-        border-radius: 50%;
-        overflow: hidden;
-        flex-shrink: 0;
-        min-width: 0;
-        img {
-          max-width: 100%;
-          max-height: 100%;
+    & > div {
+      & > input[type='checkbox'] {
+        display: none;
+        &:checked + label {
+          background-color: @border-color;
         }
       }
-      p {
-        flex-grow: 1;
+      & > label {
+        height: 50px;
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        & > *:not(:first-child) {
+          margin-left: 8px;
+        }
+        position: relative;
+        flex-direction: row;
+        align-items: center;
+        .profile {
+          height: 100%;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+          min-width: 0;
+          img {
+            max-width: 100%;
+            max-height: 100%;
+          }
+        }
+        p {
+          flex-grow: 1;
+        }
+        &.hover, &:hover {
+          z-index: 3;
+          outline: 1px solid grey;
+        }
       }
     }
     &:empty:after {

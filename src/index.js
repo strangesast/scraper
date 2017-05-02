@@ -2,28 +2,17 @@ require('../assets/placeholder.png');
 require('./index.less');
 
 import { Observable } from 'rxjs/Rx';
-import { shrinkCropPhoto } from '../src/parse';
-import { setupBlobCommandStream, breakify, breakifyStream, streamObjectsFromBlob, formatPercentage, formatBytes } from '../src/stream';
+import { breakify, breakifyStream, formatBytes } from '../src/stream';
 import * as d3 from 'd3';
 
-let chunkSizeInput = document.getElementById('chunk-size');
-let includePhotosCheckbox = document.getElementById('include-photos');
-let displayPhotosCheckbox = document.getElementById('display-photos');
-let outputFilenameInput = document.getElementById('output-filename');
-let statsOutput = document.getElementById('import0');
-let generateOutput = document.getElementById('export');
-let downloadOutput = document.getElementById('download');
 
-let MyWorker = require('worker-loader!./worker');
-let worker1 = new MyWorker();
-let worker2 = new MyWorker();
+var MyWorker = require('worker-loader!./worker');
+var worker = new MyWorker();
+var workerMessages = Observable.fromEvent(worker, 'message')
+  .pluck('data')
+  .filter(d => d && d.command);
 
-let worker1Messages = Observable.fromEvent(worker1, 'message').pluck('data').filter(d => d && d.command);
-let worker2Messages = Observable.fromEvent(worker2, 'message').pluck('data').filter(d => d && d.command);
-
-var fileInput = document.getElementById('file-upload');
-
-let fileStream = Observable.fromEvent(fileInput, 'change')
+var fileStream = Observable.fromEvent(document.getElementById('file-upload'), 'change')
   .pluck('target', 'files')
   .concatMap((arr, i) => Observable.from(arr));
 
@@ -32,7 +21,7 @@ function isCommand(_command) {
 };
 
 function* blobToMessages(id, file, chunkSize, includePhotos) {
-  let port = worker1; // temp
+  let port = worker; // temp
   let command = 'blob';
   let g = breakify(file, chunkSize);
   let { done, value } = g.next();
@@ -49,15 +38,13 @@ function nextResponseValidator(pos, { lastPos}) {
   if (pos != lastPos) throw new Error('unexpected response');
 };
 
-let idToName = {};
-
+let chunkSizeInput = document.getElementById('chunk-size');
+let includePhotosCheckbox = document.getElementById('include-photos');
 fileStream
   .map((file, id) => {
     let size = file.size;
     let start = performance.now();
-    idToName[id] = file.name;
-  
-    let myWorkerMessages = worker1Messages.filter(({ id: _id }) => _id === id);
+    let myWorkerMessages = workerMessages.filter(({ id: _id }) => _id === id);
     let nextMessages = myWorkerMessages.filter(isCommand('blobNext'));
   
     let chunkSize = +chunkSizeInput.value;
@@ -69,7 +56,7 @@ fileStream
   })
   .mergeAll(3)
   .scan((a, b) => {
-    // keep the latest point of each file
+    // keep the latest point of each file, might be slow
     for (let i=0; i < a.length; i++) {
       if (a[i].file == b.file) {
         a[i] = b;
@@ -78,12 +65,10 @@ fileStream
     }
     return a.concat(b);
   }, [])
-  .map(v => updateImportProgress(v)) // ugly
+  .map(v => updateImportProgress(v))
   .subscribe(null, (err) => console.error(err));
 
-let imports = d3.select(document.getElementById('imports')).selectAll('.import');
-let fileIds = {};
-let lastFileId = -1;
+var imports = d3.select(document.getElementById('imports')).selectAll('.import');
 function updateImportProgress(data) {
   imports = imports.data(data, ({ file }) => file);
 
@@ -99,53 +84,48 @@ function updateImportProgress(data) {
 }
 
 let lastId = 0;
-let objects = worker1Messages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
-  return objects.map(data => ({ data, id: lastId++, file: fileId }));
-}).concatMap(a => Observable.from(a)).share();
+let objects = workerMessages
+  .filter(isCommand('blobObjectsFound'))
+  .map(({ objects, id: fileId }) => objects.map(data => ({ data, id: lastId++, file: fileId })))
+  .scan((a, b) => a.concat(b), []);
 
-let nest = d3.nest().key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
+let nest = d3.nest()
+  .key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
 
-let objectArray = objects.bufferTime(50).filter(a => a.length).scan((a, b) => a.concat(b), [])
-  
-objectArray.subscribe(objects => {
-  //let data = nest.entries(objects);
-
-  calculateGraph(objects);
-}, (err) => console.error(err));
+objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 
 const cols = [
-  { name: 'External System ID', include: true, defaultValue: null },
-  { name: 'Load Date',          include: true, defaultValue: null },
-  { name: 'First Name',         include: true, defaultValue: null },
-  { name: 'Last Name',          include: true, defaultValue: null },
-  { name: 'Middle Name',        include: true, defaultValue: null },
-  { name: 'Roles',              include: true, defaultValue: null },
-  { name: 'Status',             include: true, defaultValue: '0' },
-  { name: 'Partition',          include: true, defaultValue: null },
-  { name: 'Address',            include: true, defaultValue: null },
-  { name: 'City',               include: true, defaultValue: null },
-  { name: 'State',              include: true, defaultValue: null },
-  { name: 'Zip',                include: true, defaultValue: null },
-  { name: 'Phone',              include: true, defaultValue: null },
-  { name: 'Work Phone',         include: true, defaultValue: null },
-  { name: 'Email Address',      include: true, defaultValue: null },
-  { name: 'Title',              include: true, defaultValue: null },
-  { name: 'Department',         include: true, defaultValue: null },
-  { name: 'Building',           include: true, defaultValue: null },
-  { name: 'Embossed Number',    include: true, defaultValue: null },
-  { name: 'Token Unique',       include: true, defaultValue: null },
-  { name: 'Internal Number',    include: true, defaultValue: null },
-  { name: 'Download',           include: true, defaultValue: 'f' },
-  { name: 'Token Status',       include: true, defaultValue: '2' }
+  { name: 'External System ID', defaultValue: null },
+  { name: 'Load Date',          defaultValue: null },
+  { name: 'First Name',         defaultValue: null },
+  { name: 'Last Name',          defaultValue: null },
+  { name: 'Middle Name',        defaultValue: null },
+  { name: 'Roles',              defaultValue: null },
+  { name: 'Status',             defaultValue: '0' },
+  { name: 'Partition',          defaultValue: null },
+  { name: 'Address',            defaultValue: null },
+  { name: 'City',               defaultValue: null },
+  { name: 'State',              defaultValue: null },
+  { name: 'Zip',                defaultValue: null },
+  { name: 'Phone',              defaultValue: null },
+  { name: 'Work Phone',         defaultValue: null },
+  { name: 'Email Address',      defaultValue: null },
+  { name: 'Title',              defaultValue: null },
+  { name: 'Department',         defaultValue: null },
+  { name: 'Building',           defaultValue: null },
+  { name: 'Embossed Number',    defaultValue: null },
+  { name: 'Token Unique',       defaultValue: null },
+  { name: 'Internal Number',    defaultValue: null },
+  { name: 'Download',           defaultValue: 'f' },
+  { name: 'Token Status',       defaultValue: '2' }
 ];
 
 let exportSettings = d3.select(document.getElementById('export-settings'));
 let defaultRows = exportSettings.select('.cols').selectAll('.col:not(.header)').data(cols).enter().append('div').attr('class', 'col');
 defaultRows.append('span').attr('class', 'name').attr('title', d => d.name).text(d => d.name);
-defaultRows.append('input').attr('class', 'include').attr('type', 'checkbox').attr('disabled', true).attr('checked', d => !!d.include);
-defaultRows.append('input').attr('class', 'default').attr('type', 'text').attr('value', d => d.defaultValue);
+defaultRows.append('input').attr('class', 'default').attr('required', '').attr('type', 'text').attr('value', d => d.defaultValue);
 
-function getDefault() {
+function getDefaults() {
   let obj = {};
   defaultRows.select('.default').each(function(v) {
     let val = this.value;
@@ -156,10 +136,13 @@ function getDefault() {
   return obj;
 }
 
-Observable.fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
+var generateOutput = document.getElementById('export');
+var outputFilenameInput = document.getElementById('output-filename');
+var downloadOutput = document.getElementById('download');
+Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
-    let defaults = getDefault();
+    let defaults = getDefaults();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
@@ -280,33 +263,8 @@ let container = svg.append('g');
 var node = container.append('g').selectAll('g');
 var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
-let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
-
-/*
-var wells = container.append('g').selectAll('g');
-
-function calculateWells(data) {
-  console.log(data);
-  wells = wells.data(data, ({ key }) => key);
-
-  wells.exit().remove();
-
-  wells = wells.enter()
-    .append('g')
-    .call(drag)
-    .append('circle')
-    .attr('fill', (d, i) => color(i))
-    .attr('r', (d) => calcR(d.values.length))
-    .merge(wells);
-
-  simulation.nodes(data)
-  collision.initialize(simulation.nodes());
-  simulation.alpha(1.0).restart();
-  reset();
-}
-*/
-
-function calculateGraph(people, fileName) {
+let displayPhotosCheckbox = document.getElementById('display-photos');
+function calculateGraph(people) {
   node = node.data(people, ({ id }) => id);
   table = table.data(people, ({ id }) => id);
 
@@ -314,7 +272,7 @@ function calculateGraph(people, fileName) {
   table.exit().remove()
 
   let nnode = node.enter().append('g')
-    .attr('data-id', ({id}) => id)
+    .attr('id', ({id}) => `blob-${ id }`)
     .call(drag)
 
   nnode.append('circle')
@@ -336,19 +294,27 @@ function calculateGraph(people, fileName) {
       .attr('xlink:href', (d) => d.data.PhotoFile || 'assets/placeholder.png');
   }
 
-  let ntable = table.enter().append('div').attr('class', 'row')
+  let ntable = table.enter().append('div').attr('data-id', ({ id }) => id);
+  ntable.append('input').attr('type', 'checkbox').attr('id',  ({ id }) => 'item-' + id).on('change', function(d) {
+    let checked = this.checked;
+    let n = node.filter(`#blob-${ d.id }`).attr('selected', checked).select('circle');
+    if (checked) {
+      n.attr('fill', 'white');
+    } else {
+      n.attr('fill', () => color(+d.file))
+    }
+  });
+  let tableRows = ntable.append('label').attr('for', ({ id }) => 'item-' + id)
     .on('mouseenter', function(d) {
-      d3.select(this).style('background-color', 'lightgrey');
+      //this.classList.add('hover');
       node.style('opacity', 0.4);
-      node.filter(`[data-id="${ d.id }"]`).style('opacity', 1.0);
+      node.filter(`#blob-${ d.id }`).style('opacity', 1.0);
     })
     .on('mouseleave', function(d) {
-      d3.select(this).style('background-color', null);
+      //this.classList.remove('hover');
+      d3.select(this).style('class', null);
       node.style('opacity', 1.0);
     })
-
-  let tableRows = ntable
-    .attr('data-id', ({id}) => id)
 
   tableRows
     .append('div')
@@ -356,7 +322,8 @@ function calculateGraph(people, fileName) {
     .append('img')
     .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
 
-  tableRows.append('p')
+  tableRows
+    .append('p')
     .text(({ data }) => [data['First Name'], data['Middle Name'], data['Last Name']].filter(s => s).join(' '));
 
   node = nnode.merge(node);
@@ -375,33 +342,6 @@ function loadImage(d, element, callback) {
     callback(d.id)
   }, 1000);
 }
-
-//async function loadImage(obj, element, callback) {
-//  if (obj.data.PhotoFile) {
-//    let data = obj.data.PhotoFile;
-//
-//    let url = await shrinkCropPhoto(Observable.of(data)).toPromise();
-//    let pat = svg.select('defs').append('pattern');
-//
-//    let id = `image-${ obj.id }`;
-//    pat
-//      .attr('id', id)
-//      .attr('x', -circleRadius)
-//      .attr('y', -circleRadius)
-//      .attr('patternUnits', 'userSpaceOnUse')
-//      .attr('height', circleRadius*2)
-//      .attr('width', circleRadius*2)
-//      .append('image')
-//        .attr('x', '0')
-//        .attr('y', '0')
-//        .attr('width', circleRadius*2)
-//        .attr('height', circleRadius*2)
-//        .attr('xlink:href', url)
-//
-//    d3.select(element).attr('fill', `url(#${ id })`);
-//  }
-//  callback();
-//}
 
 function reset() {
   i = 0;
@@ -425,22 +365,39 @@ function dragstarted(d) {
     reset();
   }
   let n = this;
+  d3.select(this).attr('selected', true).select('circle').attr('fill', 'white');
   node.style('opacity', function(d) {
     return (n === this) ? 1.0 : 0.4;
   });
-  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'lightgrey').each(function() {
-    let p = this.parentElement.parentElement;
-    p.scrollTop = this.offsetTop - p.offsetHeight/3;
+  table.filter(`[data-id="${ d.id }"]`).each(function(e) {
+    let sel = d3.select(this);
+    if (e.id == d.id) {
+      sel.select('input').attr('checked', true);
+    }
+    sel.select('label').each(function() {
+      this.classList.add('hover');
+      let p = this.parentElement.parentElement.parentElement;
+      p.scrollTop = this.offsetTop - p.offsetHeight/3;
+    });
   });
-
   d.fx = d.x;
   d.fy = d.y;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = d.x;
+    e.fy = d.y;
+  })
+
 }
 
 
 function dragged(d) {
-  d.fx = event.x;
-  d.fy = event.y;
+  let { x, y } = event;
+  d.fx = x;
+  d.fy = y;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = x;
+    e.fy = y;
+  });
   reset();
 }
 
@@ -450,6 +407,13 @@ function dragended(d) {
   d3.select(this).style('opacity', 1.0);
   d.fx = null;
   d.fy = null;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = null;
+    e.fy = null;
+  });
   node.style('opacity', 1.0);
-  table.filter(`[data-id="${ d.id }"]`).style('background-color', null);
+
+  table.filter(`[data-id="${ d.id }"]`).select('label').each(function() {
+    this.classList.remove('hover');
+  });
 }
