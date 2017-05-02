@@ -98,7 +98,9 @@ function transformObjectKeys(object) {
         obj[key] = object[key];
         break;
       case 'CardNumber2':
-        if (obj[keyNames.embossed]) break;
+        if (obj[keyNames.embossed] !== undefined) {
+          break;
+        }
       case 'CardNumber':
         obj[keyNames.embossed] = object[key];
         obj[keyNames.internal] = object[key];
@@ -310,8 +312,10 @@ export function* parseObject(includePhotos=false) {
         }
         result[key] = value;
         line = yield value;
-      } // else do nothing / error
-      line = yield null;
+      } else {
+        // else do nothing / error
+        line = yield null;
+      }
     }
   } finally {
     return result;
