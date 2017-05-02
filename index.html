@@ -6,13 +6,67 @@
   <link href="bundle.css" rel="stylesheet"></head>
   <body>
     <div class="left">
-      <h1>Toast TOAST toast</h1>
-      <input id="chunk-size" type="number" min="0" value="10000000">
-      <input type="file" id="file-upload"></input>
-      <button id="export">Generate Output</button>
-      <a disabled id="download">Download</a>
-      <pre id="stats"></pre>
-      <img></img>
+      <div class="header">
+        <span>DMP Import Tool</span>
+      </div>
+      <span class="heading">Settings</span>
+      <div class="panel bordered">
+        <input id="toggle0" type="checkbox">
+        <label class="toggle" for="toggle0">Import Settings</label>
+        <div class="body settings">
+          <div>
+            <label for="chunk-size">Chunk size</label>
+            <input id="chunk-size" type="number" min="0" value="10000000">
+            <small>Byte increment size.</small>
+          </div>
+          <div>
+            <label for="include-photos">Parse photos</label>
+            <input id="include-photos" type="checkbox"></input>
+          </div>
+        </div>
+      </div>
+      <div class="panel bordered">
+        <input id="toggle1" type="checkbox">
+        <label class="toggle" for="toggle1">Export Settings</label>
+        <div id="export-settings" class="body settings">
+          <div>
+            <label for="include-keymap">Group name map</label>
+            <input id="include-keymap" type="checkbox" checked></input>
+          </div>
+          <div>
+            <label for="output-filename">Output Filename</label>
+            <input id="output-filename" type="text" value="dump.csv">
+          </div>
+          <div class="cols">
+            <div class="col header">
+              <span title="Key Name" class="name">Key Name</span>
+              <span title="Default Value" class="default">Default Value</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel bordered">
+        <input id="toggle2" type="checkbox">
+        <label class="toggle" for="toggle2">Display Settings</label>
+        <div class="body settings">
+          <label for="display-photos">Display Photos</button>
+          <input type="checkbox" id="display-photos">
+        </div>
+      </div>
+      <span class="heading">Imports</span>
+      <div id="imports" class="imports panel"></div>
+      <div class="panel">
+        <label class="button" for="file-upload">Add File</label>
+        <input type="file" id="file-upload"></input>
+      </div>
+      <span class="heading">Output</span>
+      <div class="panel">
+        <div>
+          <span class="button" id="export">Generate Output</span>
+          <a disabled id="download">Download</a>
+        </div>
+      </div>
+      <span class="heading">Objects</span>
       <div class="table"></div>
     </div>
     <div class="right">

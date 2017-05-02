@@ -3647,7 +3647,7 @@ const keyNames = {
   embossed:    'Embossed Number',
   external:    'External System ID',
   first:       'First Name',
-  interal:     'Internal Number',
+  internal:    'Internal Number',
   last:        'Last Name',
   load:        'Load Date',
   middle:      'Middle Name',
@@ -3674,10 +3674,12 @@ function transformObjectKeys(object) {
         obj[key] = object[key];
         break;
       case 'CardNumber2':
-        if (obj[keyNames.embossed]) break;
+        if (obj[keyNames.embossed] !== undefined) {
+          break;
+        }
       case 'CardNumber':
         obj[keyNames.embossed] = object[key];
-        obj[keyNames.interal]  = object[key];
+        obj[keyNames.internal] = object[key];
         obj[keyNames.token]   = object[key];
         break;
       case 'Department':
@@ -3708,14 +3710,14 @@ function transformObjectKeys(object) {
         obj[keyNames.building] = object[key];
         break;
       case 'State':
-        let s = +object[key];
-        if (isNaN(s) || (s != 0 && s != 1)) {
-          obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
-        } else {
+        let s = object[key];
+        //if (isNaN(s) || (s != 0 && s != 1)) {
+        //  obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
+        //} else {
           obj[keyNames.status] = s;
-          obj[keyNames.tokenStatus] = s == 1 ? 1 : 2;
-          obj[keyNames.download] = s == 1 ? 't' : 'f';
-        }
+          obj[keyNames.tokenStatus] = (s == 1 ? 1 : 2);
+          obj[keyNames.download] = (s == 1 ? 't' : 'f');
+        //}
         break;
       case 'WorkPhone':
         obj[keyNames.phone] = object[key];
@@ -3886,8 +3888,10 @@ function* parseObject(includePhotos=false) {
         }
         result[key] = value;
         line = yield value;
-      } // else do nothing / error
-      line = yield null;
+      } else {
+        // else do nothing / error
+        line = yield null;
+      }
     }
   } finally {
     return result;
@@ -26749,6 +26753,7 @@ eachBlobCommands.flatMap(stream => {
   let [validBlobCommands, invalidBlobCommands] = stream
     .partition(({ command }) => command === 'blob' || command === 'blobCancel');
   
+  let parser;
   let input = validBlobCommands
     .filter(({ command }) => command === 'blob')
     .takeWhile(({ done }) => !done)
@@ -26756,13 +26761,17 @@ eachBlobCommands.flatMap(stream => {
   let cancel = validBlobCommands
     .filter(({ command }) => command === 'blobCancel');
 
-  let textStream = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__stream__["a" /* readBlobStreamAsText */])(input);
-
   let g = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__parse__["a" /* breakLines */])();
   g.next('');
 
-  let parser = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__parse__["b" /* parseRoot */])(false);
-  parser.next('');
+  let textStream = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__stream__["a" /* readBlobStreamAsText */])(input.take(1).concatMap(message => {
+    let { includePhotos } = message;
+    parser = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__parse__["b" /* parseRoot */])(!!includePhotos);
+    parser.next('');
+    return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of(message).concat(input)
+      .finally(() => parser.return()); // this doesn't actually work
+  }));
+  //let textStream = readBlobStreamAsText(test);
 
   let parseText = textStream.map(({ text, pos }) => {
     let { value: lines, done } = g.next(text);
@@ -26782,7 +26791,6 @@ eachBlobCommands.flatMap(stream => {
     return pos;
   }).finally(() => {
     g.return();
-    parser.return();
   });
 
   let nextMessages = parseText.map(lastPos => {

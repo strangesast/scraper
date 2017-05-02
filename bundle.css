@@ -9,18 +9,153 @@ body {
   display: flex;
   flex-direction: row;
   overflow: hidden;
+  font-family: Sans-Serif;
+}
+.button {
+  box-sizing: border-box;
+  display: inline-block;
+  padding: 8px;
+  border: 1px solid #e4e4e4;
+  transition: background-color 0.1s ease;
+  background-color: unset;
+  font-size: 1em;
+  cursor: pointer;
+}
+.button:hover {
+  background-color: #e4e4e4;
+}
+input[type="file"] {
+  display: none;
 }
 .left {
   width: 300px;
+  display: flex;
   overflow-y: auto;
+  flex-direction: column;
+  border-right: 1px solid #e4e4e4;
+  box-shadow: 1px 1px 3px #e4e4e4;
 }
 .left pre {
   white-space: normal;
 }
-.left .table {
+.left > .header {
+  margin: 20px 8px 8px 8px;
+}
+.left > .header span {
+  font-size: 2.0em;
+}
+.left .heading {
+  margin: 0 8px 8px 8px;
+  font-size: 1.4em;
+}
+.left .settings {
+  position: relative;
+}
+.left .settings > div label,
+.left .settings > div input {
+  display: inline-block;
+}
+.left .settings > div small {
+  display: block;
+}
+.left .settings > div label {
+  flex-grow: 1;
+}
+.left .settings > div input {
+  max-width: 40%;
+}
+.left .settings > div:not(:first-child) {
+  margin-top: 8px;
+}
+.left .settings > div.cols {
+  position: relative;
+}
+.left .settings > div.cols .col {
+  margin: 4px 0;
+  height: 24px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.left .settings > div.cols .col > * {
+  display: inline-block;
+}
+.left .settings > div.cols .col.header > * {
+  font-style: italic;
+}
+.left .settings > div.cols .col .name,
+.left .settings > div.cols .col .default {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.left .settings > div.cols .col .name {
+  width: 60%;
+}
+.left .settings > div.cols .col .default {
+  width: 40%;
+  box-sizing: border-box;
+  margin: 0;
+}
+.left .settings > div.cols .col input.default:not(:valid) {
+  border: 1px solid lightgrey;
+  background-color: #e4e4e4;
+}
+.left .panel > input[type="checkbox"] {
+  display: none;
+}
+.left .panel > label.toggle {
+  user-select: none;
+  cursor: pointer;
+}
+.left .panel > label.toggle:before {
+  content: "+";
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+.left .panel input:checked + label:before {
+  content: "-";
+}
+.left .panel input:not(:checked) ~ .body {
+  display: none;
+}
+.left .panel .body {
+  padding: 8px;
+}
+.left .panel.bordered {
+  border: 1px solid #e4e4e4;
+  padding: 8px;
+}
+.left .imports {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.left .imports .import {
+  padding: 8px;
+  border: 1px solid #e4e4e4;
+}
+.left .imports .import progress {
   width: 100%;
 }
-.left .table .row {
+.left .imports .import:not(:first-child) {
+  border-top: none;
+}
+.left .panel:not(:empty) {
+  margin: 0 8px 8px 8px;
+}
+.left .table {
+  width: 100%;
+  flex-grow: 1;
+}
+.left .table > div > input[type='checkbox'] {
+  display: none;
+}
+.left .table > div > input[type='checkbox']:checked + label {
+  background-color: #e4e4e4;
+}
+.left .table > div > label {
   height: 50px;
   padding: 10px;
   box-sizing: border-box;
@@ -29,22 +164,31 @@ body {
   flex-direction: row;
   align-items: center;
 }
-.left .table .row > *:not(:first-child) {
+.left .table > div > label > *:not(:first-child) {
   margin-left: 8px;
 }
-.left .table .row .profile {
+.left .table > div > label .profile {
   height: 100%;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
   min-width: 0;
 }
-.left .table .row .profile img {
+.left .table > div > label .profile img {
   max-width: 100%;
   max-height: 100%;
 }
-.left .table .row p {
+.left .table > div > label p {
   flex-grow: 1;
+}
+.left .table > div > label.hover,
+.left .table > div > label:hover {
+  z-index: 3;
+  outline: 1px solid grey;
+}
+.left .table:empty:after {
+  content: 'None';
+  margin-left: 8px;
 }
 .right {
   flex-grow: 1;

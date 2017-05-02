@@ -227,7 +227,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var isFunction_1 = __webpack_require__(28);
 var Subscription_1 = __webpack_require__(4);
-var Observer_1 = __webpack_require__(42);
+var Observer_1 = __webpack_require__(41);
 var rxSubscriber_1 = __webpack_require__(23);
 /**
  * Implements the {@link Observer} interface and extends the
@@ -525,9 +525,9 @@ exports.OuterSubscriber = OuterSubscriber;
 "use strict";
 
 var root_1 = __webpack_require__(7);
-var isArrayLike_1 = __webpack_require__(66);
-var isPromise_1 = __webpack_require__(68);
-var isObject_1 = __webpack_require__(67);
+var isArrayLike_1 = __webpack_require__(65);
+var isPromise_1 = __webpack_require__(67);
+var isObject_1 = __webpack_require__(66);
 var Observable_1 = __webpack_require__(0);
 var iterator_1 = __webpack_require__(18);
 var InnerSubscriber_1 = __webpack_require__(76);
@@ -609,11 +609,11 @@ exports.subscribeToResult = subscribeToResult;
 "use strict";
 
 var isArray_1 = __webpack_require__(11);
-var isObject_1 = __webpack_require__(67);
+var isObject_1 = __webpack_require__(66);
 var isFunction_1 = __webpack_require__(28);
 var tryCatch_1 = __webpack_require__(8);
 var errorObject_1 = __webpack_require__(6);
-var UnsubscriptionError_1 = __webpack_require__(64);
+var UnsubscriptionError_1 = __webpack_require__(63);
 /**
  * Represents a disposable resource, such as the execution of an Observable. A
  * Subscription has one important method, `unsubscribe`, that takes no argument
@@ -816,7 +816,7 @@ var Observable_1 = __webpack_require__(0);
 var Subscriber_1 = __webpack_require__(1);
 var Subscription_1 = __webpack_require__(4);
 var ObjectUnsubscribedError_1 = __webpack_require__(26);
-var SubjectSubscription_1 = __webpack_require__(43);
+var SubjectSubscription_1 = __webpack_require__(42);
 var rxSubscriber_1 = __webpack_require__(23);
 /**
  * @class SubjectSubscriber<T>
@@ -1325,7 +1325,7 @@ exports.EmptyObservable = EmptyObservable;
 
 "use strict";
 
-var ConnectableObservable_1 = __webpack_require__(44);
+var ConnectableObservable_1 = __webpack_require__(43);
 /* tslint:enable:max-line-length */
 /**
  * Returns an Observable that emits the results of invoking a specified selector on items
@@ -1920,9 +1920,9 @@ var AsyncSubject_1 = __webpack_require__(20);
 exports.AsyncSubject = AsyncSubject_1.AsyncSubject;
 var ReplaySubject_1 = __webpack_require__(31);
 exports.ReplaySubject = ReplaySubject_1.ReplaySubject;
-var BehaviorSubject_1 = __webpack_require__(41);
+var BehaviorSubject_1 = __webpack_require__(40);
 exports.BehaviorSubject = BehaviorSubject_1.BehaviorSubject;
-var ConnectableObservable_1 = __webpack_require__(44);
+var ConnectableObservable_1 = __webpack_require__(43);
 exports.ConnectableObservable = ConnectableObservable_1.ConnectableObservable;
 var Notification_1 = __webpack_require__(15);
 exports.Notification = Notification_1.Notification;
@@ -1932,25 +1932,25 @@ var ArgumentOutOfRangeError_1 = __webpack_require__(24);
 exports.ArgumentOutOfRangeError = ArgumentOutOfRangeError_1.ArgumentOutOfRangeError;
 var ObjectUnsubscribedError_1 = __webpack_require__(26);
 exports.ObjectUnsubscribedError = ObjectUnsubscribedError_1.ObjectUnsubscribedError;
-var TimeoutError_1 = __webpack_require__(63);
+var TimeoutError_1 = __webpack_require__(62);
 exports.TimeoutError = TimeoutError_1.TimeoutError;
-var UnsubscriptionError_1 = __webpack_require__(64);
+var UnsubscriptionError_1 = __webpack_require__(63);
 exports.UnsubscriptionError = UnsubscriptionError_1.UnsubscriptionError;
-var timeInterval_1 = __webpack_require__(56);
+var timeInterval_1 = __webpack_require__(55);
 exports.TimeInterval = timeInterval_1.TimeInterval;
-var timestamp_1 = __webpack_require__(57);
+var timestamp_1 = __webpack_require__(56);
 exports.Timestamp = timestamp_1.Timestamp;
 var TestScheduler_1 = __webpack_require__(340);
 exports.TestScheduler = TestScheduler_1.TestScheduler;
-var VirtualTimeScheduler_1 = __webpack_require__(58);
+var VirtualTimeScheduler_1 = __webpack_require__(57);
 exports.VirtualTimeScheduler = VirtualTimeScheduler_1.VirtualTimeScheduler;
-var AjaxObservable_1 = __webpack_require__(47);
+var AjaxObservable_1 = __webpack_require__(46);
 exports.AjaxResponse = AjaxObservable_1.AjaxResponse;
 exports.AjaxError = AjaxObservable_1.AjaxError;
 exports.AjaxTimeoutError = AjaxObservable_1.AjaxTimeoutError;
-var asap_1 = __webpack_require__(59);
+var asap_1 = __webpack_require__(58);
 var async_1 = __webpack_require__(9);
-var queue_1 = __webpack_require__(60);
+var queue_1 = __webpack_require__(59);
 var animationFrame_1 = __webpack_require__(337);
 var rxSubscriber_1 = __webpack_require__(23);
 var iterator_1 = __webpack_require__(18);
@@ -2403,11 +2403,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Subject_1 = __webpack_require__(5);
-var queue_1 = __webpack_require__(60);
+var queue_1 = __webpack_require__(59);
 var Subscription_1 = __webpack_require__(4);
 var observeOn_1 = __webpack_require__(36);
 var ObjectUnsubscribedError_1 = __webpack_require__(26);
-var SubjectSubscription_1 = __webpack_require__(43);
+var SubjectSubscription_1 = __webpack_require__(42);
 /**
  * @class ReplaySubject<T>
  */
@@ -3495,466 +3495,6 @@ var ZipBufferIterator = (function (_super) {
 
 /***/ }),
 /* 39 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(Buffer) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(19);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
-/* harmony export (immutable) */ __webpack_exports__["c"] = parseStream;
-/* unused harmony export parseLinesStream */
-/* harmony export (immutable) */ __webpack_exports__["a"] = breakLines;
-/* unused harmony export streamIntoGen */
-/* unused harmony export breakStreamIntoFullLines */
-/* harmony export (immutable) */ __webpack_exports__["b"] = parseRoot;
-/* unused harmony export parseDictionary */
-/* unused harmony export parseRow */
-/* unused harmony export parseObject */
-/* unused harmony export parsePhotoFile */
-/* unused harmony export skipPhotoFile */
-/* unused harmony export parseAreaLinks */
-/* unused harmony export chunk */
-/* unused harmony export splitify */
-/* unused harmony export shrinkCropPhoto */
-
-
-const headerRe = /^\'\s*(.+)?$/;
-const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
-
-
-function parseStream(stream) {
-  // check out Observable.wrap
-  let root = parseRoot(true);
-  root.next();
-  return stream
-    .concatMap(string => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(splitify(string)))
-    .concat([null])
-    .map(row => root.next(row)).pluck('value');
-}
-
-
-function parseLinesStream(stream) {
-  let root = parseRoot(true);
-  root.next();
-  return stream
-    .map(line => root.next(line))
-    .finally(() => root.return())
-    .pluck('value');
-}
-
-
-function* breakLines(seperator='\r\n') {
-  let res, buf = '', i;
-  while (true) {
-    buf += yield res;
-    i = buf.lastIndexOf(seperator);
-    if (i > -1) {
-      res = buf.substring(0, i).split(seperator);
-      buf = buf.substring(i+seperator.length);
-    } else {
-      res = [];
-    }
-  }
-};
-
-
-function streamIntoGen(stream, gen, ignoreNull=true) {
-  let g = gen();
-  g.next();
-  let ret = stream.map(val => {
-    let { value, done } = g.next(val);
-    if (done) throw new Error('gen completed before stream');
-    return value;
-  }).finally(() => g.return());
-  if (ignoreNull) {
-    ret = ret.filter(val => val != null);
-  }
-  return ret;
-}
-
-
-function breakStreamIntoFullLines(textStream, seperator) {
-  return streamIntoGen(textStream, breakLines.bind(null, seperator)).filter(lines => {
-    return lines.length;
-  }).concatMap(lines => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(lines));
-}
-
-const keyNames = {
-  address:     'Address',
-  building:    'Building',
-  city:        'City',
-  department:  'Department',
-  download:    'Download',
-  email:       'Email Address',
-  embossed:    'Embossed Number',
-  external:    'External System ID',
-  first:       'First Name',
-  interal:     'Internal Number',
-  last:        'Last Name',
-  load:        'Load Date',
-  middle:      'Middle Name',
-  partition:   'Partition',
-  phone:       'Phone',
-  roles:       'Roles',
-  state:       'State',
-  status:      'Status',
-  title:       'Title',
-  tokenStatus: 'Token Status',
-  token:       'Token Unique',
-  phone:       'Work Phone',
-  zip:         'Zip'
-};
-
-function transformObjectKeys(object) {
-  let obj = {};
-  for (let key in object) {
-    switch (key) {
-      case 'AreaLinks':
-        obj[key] = object[key];
-        break;
-      case 'PhotoFile':
-        obj[key] = object[key];
-        break;
-      case 'CardNumber2':
-        if (obj[keyNames.embossed]) break;
-      case 'CardNumber':
-        obj[keyNames.embossed] = object[key];
-        obj[keyNames.interal]  = object[key];
-        obj[keyNames.token]   = object[key];
-        break;
-      case 'Department':
-        obj[keyNames.department] = object[key];
-        break;
-      case 'FirstName':
-        obj[keyNames.first] = object[key];
-        break;
-      case 'LastName':
-        obj[keyNames.last] = object[key];
-        break;
-      case 'FullName':
-        let { first, last } = object[key];
-        if (first) {
-          obj[keyNames.first] = first;
-        }
-        if (last) {
-          obj[keyNames.last] = last;
-        }
-        break;
-      case 'MiddleName':
-        obj[keyNames.middle] = object[key];
-        break;
-      case 'JobTitle':
-        obj[keyNames.title] = object[key];
-        break;
-      case 'OfficeLocation':
-        obj[keyNames.building] = object[key];
-        break;
-      case 'State':
-        let s = +object[key];
-        if (isNaN(s) || (s != 0 && s != 1)) {
-          obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
-        } else {
-          obj[keyNames.status] = s;
-          obj[keyNames.tokenStatus] = s == 1 ? 1 : 2;
-          obj[keyNames.download] = s == 1 ? 't' : 'f';
-        }
-        break;
-      case 'WorkPhone':
-        obj[keyNames.phone] = object[key];
-        break;
-      //case 'ActivationDate':
-      //case 'Alias':
-      //case 'BlobTemplate':
-      //case 'CardType':
-      //case 'CreatedBy':
-      //case 'CreateTime':
-      //case 'FipsPersonId':
-      //case 'Info1':
-      //case 'InstanceId':
-      //case 'LastChange':
-      //case 'LastChangedBy':
-      //case 'Object':
-      //case 'Owner':
-      //case 'RefTemplate':
-      //case 'SiteCode':
-      //case 'StartDate':
-      //case 'TimeLocked':
-      //case 'Type':
-      //case 'Visitor':
-    }
-  }
-  return obj;
-}
-
-
-function* parseRoot(includePhotos=false) {
-  let line = yield;
-  let res = null;
-  let match;
-  let headers = [];
-  //let values = [];
-  try {
-    while (line != null) {
-      // header
-      let key, value, match;
-      if (match = headerRe.exec(line)) {
-        value = match[1];
-        let keyMatch = keyRe.exec(value);
-        if (keyMatch) {
-          [key, value] = keyMatch.slice(1);
-          headers[key] = value;
-        } else {
-          headers.push(value);
-        }
-
-      } else if (match = keyRe.exec(line)) {
-        [key, value] = match.slice(1);
-        switch (key) {
-          case 'Dictionary':
-            let dictionary = yield *parseDictionary('NAME');
-            value = { dictionary };
-            break;
-          case 'Object':
-            let object = yield *parseObject(includePhotos);
-            object = transformObjectKeys(object);
-            value = { object };
-            break;
-          case 'Path':
-            value = { path: value };
-            break;
-          default:
-            throw new Error('unrecognized key', key);
-        }
-        //values.push(value);
-      }
-      line = yield value;
-    }
-  } finally {
-  }
-  //return { values, headers };
-}
-
-
-function* parseDictionary(keyName) {
-  let line = yield;
-  let header;
-  let result = [];
-  let keyIndex;
-  try {
-    while (!/^EndDictionary$/.test(line)) {
-      if (!header) {
-        if (line.startsWith('\'')) {
-          header = parseRow(line.substring(1));
-          if (keyName) {
-            keyIndex = header.indexOf(keyName);
-            if (keyIndex == -1) throw new Error('incompatible dict key');
-          }
-        }
-        line = yield { header };
-      } else {
-        let row = parseRow(line);
-        let obj = row.reduce((res, field, i) => {
-          res[header[i]] = field;
-          return res
-        }, {});
-        if (keyName) {
-          let key = header[keyIndex];
-          result[obj[header[keyIndex]]] = obj;
-        } else {
-          result.push(obj);
-        }
-        line = yield obj;
-      }
-    }
-  } finally {
-    return result;
-  }
-}
-
-
-function parseRow(string) {
-  let i = string.lastIndexOf(';0');
-  if (i > -1) string = string.substring(0, i);
-  return string.trim().split(/\s:\s/).map(s => s.trim());
-}
-
-
-function* parseObject(includePhotos=false) {
-  let line = yield;
-  let header;
-  let match;
-  let result = {};
-  try {
-    while (!/^EndObject$/.test(line)) {
-      if (match = keyRe.exec(line)) {
-        let [key, value] = match.slice(1);
-        switch (key) {
-          // text
-          case 'Type':
-          case 'Owner':
-          case 'RefTemplate':
-          case 'Alias':
-          case 'CreatedBy':
-          case 'InstanceId':
-          case 'CardType':
-          case 'SiteCode':
-          case 'CardNumber':
-          case 'CardNumber2':
-          case 'Department':
-          case 'FirstName':
-          case 'JobTitle':
-          case 'OfficeLocation':
-          case 'FipsPersonId':
-          case 'BlobTemplate':
-            break;
-          case 'FullName':
-            let [last, first] = value.split(',').map(s => s.trim());
-            value = { first, last };
-            break;
-          // dates
-          case 'ActivationDate':
-          case 'CreateTime':
-          case 'LastChange':
-          case 'StartDate':
-          case 'TimeLocked':
-            value = new Date(value);
-            break;
-          case 'AreaLinks':
-            value = yield* parseAreaLinks();
-            break;
-          case 'PhotoFile':
-            value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
-            break;
-        }
-        result[key] = value;
-        line = yield value;
-      } // else do nothing / error
-      line = yield null;
-    }
-  } finally {
-    return result;
-  }
-}
-
-
-function* parsePhotoFile() {
-  let size = Number(yield);
-  if (isNaN(size)) throw new Error('malformed PhotoFile');
-  let line;
-  let firstLine = line = yield;
-  let len = firstLine.length;
-
-  let string = line.trim();
-  try {
-    do {
-      line = yield;
-      string+=line.trim();
-
-    } while (line.length == len) // should always be '82';
-  } finally {}
-
-  let buf = null;
-  if (string.length > 1e4) {
-    try {
-      buf = 'data:image/png;base64,' + new Buffer(string, 'hex').toString('base64');
-    } catch (e) {}
-  }
-  return buf;
-}
-
-
-function* skipPhotoFile() {
-  let size = Number(yield);
-  let line;
-  let firstLine = line = yield;
-  let len = firstLine.length;
-  try {
-    do {
-      line = yield;
-    } while (line.length == len) // should always be '82';
-  } finally {
-    return null;
-  }
-}
-
-function areaLinksComparer(a, b) {
-  let r = 0;
-  for (let i=0; i < a.length; i++) {
-    r = a[i] < b[i] ? -1 : a[i] > b[i] ? 1 : 0;
-    if (r != 0) break;
-  }
-  return r;
-};
-
-function* parseAreaLinks() {
-  let line = yield;
-  let links = [];
-  try {
-    while (!/^\s*EndAreaLinks$/.test(line)) {
-      //links.push(line);
-      links.push(parseRow(line));
-      line = yield;
-    }
-  } finally {}
-  return links.sort(areaLinksComparer);
-}
-
-// for testing
-function* chunk(text, incr=10) {
-  let pos = 0;
-  do {
-    yield text.substring(pos, pos+=incr);
-  } while (pos < text.length);
-}
-
-// better than split
-function* splitify(string, seperator='\r\n') {
-  let size = string.length;
-  let pos = 0;
-  do {
-    let i = string.indexOf(seperator, pos);
-    if (i == -1) {
-      yield string.substring(pos);
-    } else if (i > 0) {
-      yield string.substring(pos, i);
-    }
-    pos = i+seperator.length;
-  } while (pos < size);
-}
-
-
-function shrinkCropPhoto(stream, minSize=1e4, maxDim=180) {
-  let image = new Image();
-  let canvas = document.createElement('canvas');
-  let ctx = canvas.getContext('2d');
-
-  return stream.concatMap(data => {
-    if (!data) {
-      return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of(null);
-    } if (data.length < minSize) {
-      return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of('data:image/png;base64,' + data);
-    }
-
-    let load = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(image, 'load').take(1);
-    image.src = 'data:image/png;base64,' + data;
-
-    return load.map(() => {
-      let [width, height] = [image.width, image.height];
-      let min = Math.min(width, height);
-      let size = Math.min(min, maxDim);
-      let dx = (width - min)/2;
-      let dy = (height - min)/2;
-      canvas.width = canvas.height = size;
-      ctx.drawImage(image, dx, dy, min, min, 0, 0, size, size);
-      let dataURL = canvas.toDataURL();
-      return dataURL;
-    });
-  });
-};
-
-/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(71).Buffer))
-
-/***/ }),
-/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var apply = Function.prototype.apply;
@@ -4013,7 +3553,7 @@ exports.clearImmediate = clearImmediate;
 
 
 /***/ }),
-/* 41 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4068,7 +3608,7 @@ exports.BehaviorSubject = BehaviorSubject;
 //# sourceMappingURL=BehaviorSubject.js.map
 
 /***/ }),
-/* 42 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4082,7 +3622,7 @@ exports.empty = {
 //# sourceMappingURL=Observer.js.map
 
 /***/ }),
-/* 43 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4128,7 +3668,7 @@ exports.SubjectSubscription = SubjectSubscription;
 //# sourceMappingURL=SubjectSubscription.js.map
 
 /***/ }),
-/* 44 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4298,7 +3838,7 @@ var RefCountSubscriber = (function (_super) {
 //# sourceMappingURL=ConnectableObservable.js.map
 
 /***/ }),
-/* 45 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4309,9 +3849,9 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var isArray_1 = __webpack_require__(11);
-var isArrayLike_1 = __webpack_require__(66);
-var isPromise_1 = __webpack_require__(68);
-var PromiseObservable_1 = __webpack_require__(46);
+var isArrayLike_1 = __webpack_require__(65);
+var isPromise_1 = __webpack_require__(67);
+var PromiseObservable_1 = __webpack_require__(45);
 var IteratorObservable_1 = __webpack_require__(216);
 var ArrayObservable_1 = __webpack_require__(10);
 var ArrayLikeObservable_1 = __webpack_require__(205);
@@ -4426,7 +3966,7 @@ exports.FromObservable = FromObservable;
 //# sourceMappingURL=FromObservable.js.map
 
 /***/ }),
-/* 46 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4553,7 +4093,7 @@ function dispatchError(arg) {
 //# sourceMappingURL=PromiseObservable.js.map
 
 /***/ }),
-/* 47 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4972,7 +4512,7 @@ exports.AjaxTimeoutError = AjaxTimeoutError;
 //# sourceMappingURL=AjaxObservable.js.map
 
 /***/ }),
-/* 48 */
+/* 47 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5086,7 +4626,7 @@ var DistinctUntilChangedSubscriber = (function (_super) {
 //# sourceMappingURL=distinctUntilChanged.js.map
 
 /***/ }),
-/* 49 */
+/* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5185,7 +4725,7 @@ var FilterSubscriber = (function (_super) {
 //# sourceMappingURL=filter.js.map
 
 /***/ }),
-/* 50 */
+/* 49 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5292,7 +4832,7 @@ exports.FindValueSubscriber = FindValueSubscriber;
 //# sourceMappingURL=find.js.map
 
 /***/ }),
-/* 51 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5443,7 +4983,7 @@ exports.mergeStatic = mergeStatic;
 //# sourceMappingURL=merge.js.map
 
 /***/ }),
-/* 52 */
+/* 51 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5620,7 +5160,7 @@ exports.MergeMapSubscriber = MergeMapSubscriber;
 //# sourceMappingURL=mergeMap.js.map
 
 /***/ }),
-/* 53 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5781,7 +5321,7 @@ exports.MergeMapToSubscriber = MergeMapToSubscriber;
 //# sourceMappingURL=mergeMapTo.js.map
 
 /***/ }),
-/* 54 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5791,7 +5331,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var FromObservable_1 = __webpack_require__(45);
+var FromObservable_1 = __webpack_require__(44);
 var isArray_1 = __webpack_require__(11);
 var OuterSubscriber_1 = __webpack_require__(2);
 var subscribeToResult_1 = __webpack_require__(3);
@@ -5863,7 +5403,7 @@ var OnErrorResumeNextSubscriber = (function (_super) {
 //# sourceMappingURL=onErrorResumeNext.js.map
 
 /***/ }),
-/* 55 */
+/* 54 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5980,7 +5520,7 @@ exports.RaceSubscriber = RaceSubscriber;
 //# sourceMappingURL=race.js.map
 
 /***/ }),
-/* 56 */
+/* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6045,7 +5585,7 @@ var TimeIntervalSubscriber = (function (_super) {
 //# sourceMappingURL=timeInterval.js.map
 
 /***/ }),
-/* 57 */
+/* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6101,7 +5641,7 @@ var TimestampSubscriber = (function (_super) {
 //# sourceMappingURL=timestamp.js.map
 
 /***/ }),
-/* 58 */
+/* 57 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6220,7 +5760,7 @@ exports.VirtualAction = VirtualAction;
 //# sourceMappingURL=VirtualTimeScheduler.js.map
 
 /***/ }),
-/* 59 */
+/* 58 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6265,7 +5805,7 @@ exports.asap = new AsapScheduler_1.AsapScheduler(AsapAction_1.AsapAction);
 //# sourceMappingURL=asap.js.map
 
 /***/ }),
-/* 60 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6337,7 +5877,7 @@ exports.queue = new QueueScheduler_1.QueueScheduler(QueueAction_1.QueueAction);
 //# sourceMappingURL=queue.js.map
 
 /***/ }),
-/* 61 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6354,12 +5894,12 @@ exports.SubscriptionLog = SubscriptionLog;
 //# sourceMappingURL=SubscriptionLog.js.map
 
 /***/ }),
-/* 62 */
+/* 61 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-var SubscriptionLog_1 = __webpack_require__(61);
+var SubscriptionLog_1 = __webpack_require__(60);
 var SubscriptionLoggable = (function () {
     function SubscriptionLoggable() {
         this.subscriptions = [];
@@ -6379,7 +5919,7 @@ exports.SubscriptionLoggable = SubscriptionLoggable;
 //# sourceMappingURL=SubscriptionLoggable.js.map
 
 /***/ }),
-/* 63 */
+/* 62 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6410,7 +5950,7 @@ exports.TimeoutError = TimeoutError;
 //# sourceMappingURL=TimeoutError.js.map
 
 /***/ }),
-/* 64 */
+/* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6441,7 +5981,7 @@ exports.UnsubscriptionError = UnsubscriptionError;
 //# sourceMappingURL=UnsubscriptionError.js.map
 
 /***/ }),
-/* 65 */
+/* 64 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6460,7 +6000,7 @@ exports.applyMixins = applyMixins;
 //# sourceMappingURL=applyMixins.js.map
 
 /***/ }),
-/* 66 */
+/* 65 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6469,7 +6009,7 @@ exports.isArrayLike = (function (x) { return x && typeof x.length === 'number'; 
 //# sourceMappingURL=isArrayLike.js.map
 
 /***/ }),
-/* 67 */
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6481,7 +6021,7 @@ exports.isObject = isObject;
 //# sourceMappingURL=isObject.js.map
 
 /***/ }),
-/* 68 */
+/* 67 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6493,7 +6033,7 @@ exports.isPromise = isPromise;
 //# sourceMappingURL=isPromise.js.map
 
 /***/ }),
-/* 69 */
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6504,6 +6044,470 @@ exports.noop = noop;
 //# sourceMappingURL=noop.js.map
 
 /***/ }),
+/* 69 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(Buffer) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(19);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
+/* harmony export (immutable) */ __webpack_exports__["c"] = parseStream;
+/* unused harmony export parseLinesStream */
+/* harmony export (immutable) */ __webpack_exports__["a"] = breakLines;
+/* unused harmony export streamIntoGen */
+/* unused harmony export breakStreamIntoFullLines */
+/* harmony export (immutable) */ __webpack_exports__["b"] = parseRoot;
+/* unused harmony export parseDictionary */
+/* unused harmony export parseRow */
+/* unused harmony export parseObject */
+/* unused harmony export parsePhotoFile */
+/* unused harmony export skipPhotoFile */
+/* unused harmony export parseAreaLinks */
+/* unused harmony export chunk */
+/* unused harmony export splitify */
+/* unused harmony export shrinkCropPhoto */
+
+
+const headerRe = /^\'\s*(.+)?$/;
+const keyRe = /^\s*(\w+)\s\:\s?(.*)?$/;
+
+
+function parseStream(stream) {
+  // check out Observable.wrap
+  let root = parseRoot(true);
+  root.next();
+  return stream
+    .concatMap(string => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(splitify(string)))
+    .concat([null])
+    .map(row => root.next(row)).pluck('value');
+}
+
+
+function parseLinesStream(stream) {
+  let root = parseRoot(true);
+  root.next();
+  return stream
+    .map(line => root.next(line))
+    .finally(() => root.return())
+    .pluck('value');
+}
+
+
+function* breakLines(seperator='\r\n') {
+  let res, buf = '', i;
+  while (true) {
+    buf += yield res;
+    i = buf.lastIndexOf(seperator);
+    if (i > -1) {
+      res = buf.substring(0, i).split(seperator);
+      buf = buf.substring(i+seperator.length);
+    } else {
+      res = [];
+    }
+  }
+};
+
+
+function streamIntoGen(stream, gen, ignoreNull=true) {
+  let g = gen();
+  g.next();
+  let ret = stream.map(val => {
+    let { value, done } = g.next(val);
+    if (done) throw new Error('gen completed before stream');
+    return value;
+  }).finally(() => g.return());
+  if (ignoreNull) {
+    ret = ret.filter(val => val != null);
+  }
+  return ret;
+}
+
+
+function breakStreamIntoFullLines(textStream, seperator) {
+  return streamIntoGen(textStream, breakLines.bind(null, seperator)).filter(lines => {
+    return lines.length;
+  }).concatMap(lines => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(lines));
+}
+
+const keyNames = {
+  address:     'Address',
+  building:    'Building',
+  city:        'City',
+  department:  'Department',
+  download:    'Download',
+  email:       'Email Address',
+  embossed:    'Embossed Number',
+  external:    'External System ID',
+  first:       'First Name',
+  internal:    'Internal Number',
+  last:        'Last Name',
+  load:        'Load Date',
+  middle:      'Middle Name',
+  partition:   'Partition',
+  phone:       'Phone',
+  roles:       'Roles',
+  state:       'State',
+  status:      'Status',
+  title:       'Title',
+  tokenStatus: 'Token Status',
+  token:       'Token Unique',
+  phone:       'Work Phone',
+  zip:         'Zip'
+};
+
+function transformObjectKeys(object) {
+  let obj = {};
+  for (let key in object) {
+    switch (key) {
+      case 'AreaLinks':
+        obj[key] = object[key];
+        break;
+      case 'PhotoFile':
+        obj[key] = object[key];
+        break;
+      case 'CardNumber2':
+        if (obj[keyNames.embossed] !== undefined) {
+          break;
+        }
+      case 'CardNumber':
+        obj[keyNames.embossed] = object[key];
+        obj[keyNames.internal] = object[key];
+        obj[keyNames.token]   = object[key];
+        break;
+      case 'Department':
+        obj[keyNames.department] = object[key];
+        break;
+      case 'FirstName':
+        obj[keyNames.first] = object[key];
+        break;
+      case 'LastName':
+        obj[keyNames.last] = object[key];
+        break;
+      case 'FullName':
+        let { first, last } = object[key];
+        if (first) {
+          obj[keyNames.first] = first;
+        }
+        if (last) {
+          obj[keyNames.last] = last;
+        }
+        break;
+      case 'MiddleName':
+        obj[keyNames.middle] = object[key];
+        break;
+      case 'JobTitle':
+        obj[keyNames.title] = object[key];
+        break;
+      case 'OfficeLocation':
+        obj[keyNames.building] = object[key];
+        break;
+      case 'State':
+        let s = object[key];
+        //if (isNaN(s) || (s != 0 && s != 1)) {
+        //  obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
+        //} else {
+          obj[keyNames.status] = s;
+          obj[keyNames.tokenStatus] = (s == 1 ? 1 : 2);
+          obj[keyNames.download] = (s == 1 ? 't' : 'f');
+        //}
+        break;
+      case 'WorkPhone':
+        obj[keyNames.phone] = object[key];
+        break;
+      //case 'ActivationDate':
+      //case 'Alias':
+      //case 'BlobTemplate':
+      //case 'CardType':
+      //case 'CreatedBy':
+      //case 'CreateTime':
+      //case 'FipsPersonId':
+      //case 'Info1':
+      //case 'InstanceId':
+      //case 'LastChange':
+      //case 'LastChangedBy':
+      //case 'Object':
+      //case 'Owner':
+      //case 'RefTemplate':
+      //case 'SiteCode':
+      //case 'StartDate':
+      //case 'TimeLocked':
+      //case 'Type':
+      //case 'Visitor':
+    }
+  }
+  return obj;
+}
+
+
+function* parseRoot(includePhotos=false) {
+  let line = yield;
+  let res = null;
+  let match;
+  let headers = [];
+  //let values = [];
+  try {
+    while (line != null) {
+      // header
+      let key, value, match;
+      if (match = headerRe.exec(line)) {
+        value = match[1];
+        let keyMatch = keyRe.exec(value);
+        if (keyMatch) {
+          [key, value] = keyMatch.slice(1);
+          headers[key] = value;
+        } else {
+          headers.push(value);
+        }
+
+      } else if (match = keyRe.exec(line)) {
+        [key, value] = match.slice(1);
+        switch (key) {
+          case 'Dictionary':
+            let dictionary = yield *parseDictionary('NAME');
+            value = { dictionary };
+            break;
+          case 'Object':
+            let object = yield *parseObject(includePhotos);
+            object = transformObjectKeys(object);
+            value = { object };
+            break;
+          case 'Path':
+            value = { path: value };
+            break;
+          default:
+            throw new Error('unrecognized key', key);
+        }
+        //values.push(value);
+      }
+      line = yield value;
+    }
+  } finally {
+  }
+  //return { values, headers };
+}
+
+
+function* parseDictionary(keyName) {
+  let line = yield;
+  let header;
+  let result = [];
+  let keyIndex;
+  try {
+    while (!/^EndDictionary$/.test(line)) {
+      if (!header) {
+        if (line.startsWith('\'')) {
+          header = parseRow(line.substring(1));
+          if (keyName) {
+            keyIndex = header.indexOf(keyName);
+            if (keyIndex == -1) throw new Error('incompatible dict key');
+          }
+        }
+        line = yield { header };
+      } else {
+        let row = parseRow(line);
+        let obj = row.reduce((res, field, i) => {
+          res[header[i]] = field;
+          return res
+        }, {});
+        if (keyName) {
+          let key = header[keyIndex];
+          result[obj[header[keyIndex]]] = obj;
+        } else {
+          result.push(obj);
+        }
+        line = yield obj;
+      }
+    }
+  } finally {
+    return result;
+  }
+}
+
+
+function parseRow(string) {
+  let i = string.lastIndexOf(';0');
+  if (i > -1) string = string.substring(0, i);
+  return string.trim().split(/\s:\s/).map(s => s.trim());
+}
+
+
+function* parseObject(includePhotos=false) {
+  let line = yield;
+  let header;
+  let match;
+  let result = {};
+  try {
+    while (!/^EndObject$/.test(line)) {
+      if (match = keyRe.exec(line)) {
+        let [key, value] = match.slice(1);
+        switch (key) {
+          // text
+          case 'Type':
+          case 'Owner':
+          case 'RefTemplate':
+          case 'Alias':
+          case 'CreatedBy':
+          case 'InstanceId':
+          case 'CardType':
+          case 'SiteCode':
+          case 'CardNumber':
+          case 'CardNumber2':
+          case 'Department':
+          case 'FirstName':
+          case 'JobTitle':
+          case 'OfficeLocation':
+          case 'FipsPersonId':
+          case 'BlobTemplate':
+            break;
+          case 'FullName':
+            let [last, first] = value.split(',').map(s => s.trim());
+            value = { first, last };
+            break;
+          // dates
+          case 'ActivationDate':
+          case 'CreateTime':
+          case 'LastChange':
+          case 'StartDate':
+          case 'TimeLocked':
+            value = new Date(value);
+            break;
+          case 'AreaLinks':
+            value = yield* parseAreaLinks();
+            break;
+          case 'PhotoFile':
+            value = yield* (includePhotos ? parsePhotoFile : skipPhotoFile)();
+            break;
+        }
+        result[key] = value;
+        line = yield value;
+      } else {
+        // else do nothing / error
+        line = yield null;
+      }
+    }
+  } finally {
+    return result;
+  }
+}
+
+
+function* parsePhotoFile() {
+  let size = Number(yield);
+  if (isNaN(size)) throw new Error('malformed PhotoFile');
+  let line;
+  let firstLine = line = yield;
+  let len = firstLine.length;
+
+  let string = line.trim();
+  try {
+    do {
+      line = yield;
+      string+=line.trim();
+
+    } while (line.length == len) // should always be '82';
+  } finally {}
+
+  let buf = null;
+  if (string.length > 1e4) {
+    try {
+      buf = 'data:image/png;base64,' + new Buffer(string, 'hex').toString('base64');
+    } catch (e) {}
+  }
+  return buf;
+}
+
+
+function* skipPhotoFile() {
+  let size = Number(yield);
+  let line;
+  let firstLine = line = yield;
+  let len = firstLine.length;
+  try {
+    do {
+      line = yield;
+    } while (line.length == len) // should always be '82';
+  } finally {
+    return null;
+  }
+}
+
+function areaLinksComparer(a, b) {
+  let r = 0;
+  for (let i=0; i < a.length; i++) {
+    r = a[i] < b[i] ? -1 : a[i] > b[i] ? 1 : 0;
+    if (r != 0) break;
+  }
+  return r;
+};
+
+function* parseAreaLinks() {
+  let line = yield;
+  let links = [];
+  try {
+    while (!/^\s*EndAreaLinks$/.test(line)) {
+      //links.push(line);
+      links.push(parseRow(line));
+      line = yield;
+    }
+  } finally {}
+  return links.sort(areaLinksComparer);
+}
+
+// for testing
+function* chunk(text, incr=10) {
+  let pos = 0;
+  do {
+    yield text.substring(pos, pos+=incr);
+  } while (pos < text.length);
+}
+
+// better than split
+function* splitify(string, seperator='\r\n') {
+  let size = string.length;
+  let pos = 0;
+  do {
+    let i = string.indexOf(seperator, pos);
+    if (i == -1) {
+      yield string.substring(pos);
+    } else if (i > 0) {
+      yield string.substring(pos, i);
+    }
+    pos = i+seperator.length;
+  } while (pos < size);
+}
+
+
+function shrinkCropPhoto(stream, minSize=1e4, maxDim=180) {
+  let image = new Image();
+  let canvas = document.createElement('canvas');
+  let ctx = canvas.getContext('2d');
+
+  return stream.concatMap(data => {
+    if (!data) {
+      return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of(null);
+    } if (data.length < minSize) {
+      return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].of('data:image/png;base64,' + data);
+    }
+
+    let load = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(image, 'load').take(1);
+    image.src = 'data:image/png;base64,' + data;
+
+    return load.map(() => {
+      let [width, height] = [image.width, image.height];
+      let min = Math.min(width, height);
+      let size = Math.min(min, maxDim);
+      let dx = (width - min)/2;
+      let dy = (height - min)/2;
+      canvas.width = canvas.height = size;
+      ctx.drawImage(image, dx, dy, min, min, 0, 0, size, size);
+      let dataURL = canvas.toDataURL();
+      return dataURL;
+    });
+  });
+};
+
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(71).Buffer))
+
+/***/ }),
 /* 70 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -6511,7 +6515,7 @@ exports.noop = noop;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(19);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__save__ = __webpack_require__(351);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__parse__ = __webpack_require__(39);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__parse__ = __webpack_require__(69);
 /* unused harmony export setupBlobCommandStream */
 /* unused harmony export streamObjectsFromURL */
 /* harmony export (immutable) */ __webpack_exports__["a"] = readBlobStreamAsText;
@@ -6520,8 +6524,8 @@ exports.noop = noop;
 /* unused harmony export streamRequest */
 /* harmony export (immutable) */ __webpack_exports__["b"] = breakify;
 /* harmony export (immutable) */ __webpack_exports__["c"] = breakifyStream;
-/* unused harmony export formatBytes */
-/* harmony export (immutable) */ __webpack_exports__["d"] = formatPercentage;
+/* harmony export (immutable) */ __webpack_exports__["d"] = formatBytes;
+/* unused harmony export formatPercentage */
 
 
 
@@ -9239,7 +9243,7 @@ Observable_1.Observable.of = of_1.of;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var onErrorResumeNext_1 = __webpack_require__(54);
+var onErrorResumeNext_1 = __webpack_require__(53);
 Observable_1.Observable.onErrorResumeNext = onErrorResumeNext_1.onErrorResumeNextStatic;
 //# sourceMappingURL=onErrorResumeNext.js.map
 
@@ -9261,7 +9265,7 @@ Observable_1.Observable.pairs = pairs_1.pairs;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var race_1 = __webpack_require__(55);
+var race_1 = __webpack_require__(54);
 Observable_1.Observable.race = race_1.raceStatic;
 //# sourceMappingURL=race.js.map
 
@@ -9570,7 +9574,7 @@ Observable_1.Observable.prototype.distinct = distinct_1.distinct;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var distinctUntilChanged_1 = __webpack_require__(48);
+var distinctUntilChanged_1 = __webpack_require__(47);
 Observable_1.Observable.prototype.distinctUntilChanged = distinctUntilChanged_1.distinctUntilChanged;
 //# sourceMappingURL=distinctUntilChanged.js.map
 
@@ -9659,7 +9663,7 @@ Observable_1.Observable.prototype.expand = expand_1.expand;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var filter_1 = __webpack_require__(49);
+var filter_1 = __webpack_require__(48);
 Observable_1.Observable.prototype.filter = filter_1.filter;
 //# sourceMappingURL=filter.js.map
 
@@ -9682,7 +9686,7 @@ Observable_1.Observable.prototype._finally = finally_1._finally;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var find_1 = __webpack_require__(50);
+var find_1 = __webpack_require__(49);
 Observable_1.Observable.prototype.find = find_1.find;
 //# sourceMappingURL=find.js.map
 
@@ -9815,7 +9819,7 @@ Observable_1.Observable.prototype.max = max_1.max;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var merge_1 = __webpack_require__(51);
+var merge_1 = __webpack_require__(50);
 Observable_1.Observable.prototype.merge = merge_1.merge;
 //# sourceMappingURL=merge.js.map
 
@@ -9837,7 +9841,7 @@ Observable_1.Observable.prototype.mergeAll = mergeAll_1.mergeAll;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var mergeMap_1 = __webpack_require__(52);
+var mergeMap_1 = __webpack_require__(51);
 Observable_1.Observable.prototype.mergeMap = mergeMap_1.mergeMap;
 Observable_1.Observable.prototype.flatMap = mergeMap_1.mergeMap;
 //# sourceMappingURL=mergeMap.js.map
@@ -9849,7 +9853,7 @@ Observable_1.Observable.prototype.flatMap = mergeMap_1.mergeMap;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var mergeMapTo_1 = __webpack_require__(53);
+var mergeMapTo_1 = __webpack_require__(52);
 Observable_1.Observable.prototype.flatMapTo = mergeMapTo_1.mergeMapTo;
 Observable_1.Observable.prototype.mergeMapTo = mergeMapTo_1.mergeMapTo;
 //# sourceMappingURL=mergeMapTo.js.map
@@ -9905,7 +9909,7 @@ Observable_1.Observable.prototype.observeOn = observeOn_1.observeOn;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var onErrorResumeNext_1 = __webpack_require__(54);
+var onErrorResumeNext_1 = __webpack_require__(53);
 Observable_1.Observable.prototype.onErrorResumeNext = onErrorResumeNext_1.onErrorResumeNext;
 //# sourceMappingURL=onErrorResumeNext.js.map
 
@@ -9993,7 +9997,7 @@ Observable_1.Observable.prototype.publishReplay = publishReplay_1.publishReplay;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var race_1 = __webpack_require__(55);
+var race_1 = __webpack_require__(54);
 Observable_1.Observable.prototype.race = race_1.race;
 //# sourceMappingURL=race.js.map
 
@@ -10280,7 +10284,7 @@ Observable_1.Observable.prototype.throttleTime = throttleTime_1.throttleTime;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var timeInterval_1 = __webpack_require__(56);
+var timeInterval_1 = __webpack_require__(55);
 Observable_1.Observable.prototype.timeInterval = timeInterval_1.timeInterval;
 //# sourceMappingURL=timeInterval.js.map
 
@@ -10313,7 +10317,7 @@ Observable_1.Observable.prototype.timeoutWith = timeoutWith_1.timeoutWith;
 "use strict";
 
 var Observable_1 = __webpack_require__(0);
-var timestamp_1 = __webpack_require__(57);
+var timestamp_1 = __webpack_require__(56);
 Observable_1.Observable.prototype.timestamp = timestamp_1.timestamp;
 //# sourceMappingURL=timestamp.js.map
 
@@ -12105,7 +12109,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Observable_1 = __webpack_require__(0);
-var noop_1 = __webpack_require__(69);
+var noop_1 = __webpack_require__(68);
 /**
  * We need this JSDoc comment for affecting ESDoc.
  * @extends {Ignored}
@@ -12363,7 +12367,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Observable_1 = __webpack_require__(0);
-var asap_1 = __webpack_require__(59);
+var asap_1 = __webpack_require__(58);
 var isNumeric_1 = __webpack_require__(29);
 /**
  * We need this JSDoc comment for affecting ESDoc.
@@ -13032,7 +13036,7 @@ exports.WebSocketSubject = WebSocketSubject;
 
 "use strict";
 
-var AjaxObservable_1 = __webpack_require__(47);
+var AjaxObservable_1 = __webpack_require__(46);
 exports.ajax = AjaxObservable_1.AjaxObservable.create;
 //# sourceMappingURL=ajax.js.map
 
@@ -13072,7 +13076,7 @@ exports.forkJoin = ForkJoinObservable_1.ForkJoinObservable.create;
 
 "use strict";
 
-var FromObservable_1 = __webpack_require__(45);
+var FromObservable_1 = __webpack_require__(44);
 exports.from = FromObservable_1.FromObservable.create;
 //# sourceMappingURL=from.js.map
 
@@ -13102,7 +13106,7 @@ exports.fromEventPattern = FromEventPatternObservable_1.FromEventPatternObservab
 
 "use strict";
 
-var PromiseObservable_1 = __webpack_require__(46);
+var PromiseObservable_1 = __webpack_require__(45);
 exports.fromPromise = PromiseObservable_1.PromiseObservable.create;
 //# sourceMappingURL=fromPromise.js.map
 
@@ -13132,7 +13136,7 @@ exports.interval = IntervalObservable_1.IntervalObservable.create;
 
 "use strict";
 
-var merge_1 = __webpack_require__(51);
+var merge_1 = __webpack_require__(50);
 exports.merge = merge_1.mergeStatic;
 //# sourceMappingURL=merge.js.map
 
@@ -14404,7 +14408,7 @@ exports.concatAll = concatAll;
 
 "use strict";
 
-var mergeMap_1 = __webpack_require__(52);
+var mergeMap_1 = __webpack_require__(51);
 /* tslint:enable:max-line-length */
 /**
  * Projects each source value to an Observable which is merged in the output
@@ -14480,7 +14484,7 @@ exports.concatMap = concatMap;
 
 "use strict";
 
-var mergeMapTo_1 = __webpack_require__(53);
+var mergeMapTo_1 = __webpack_require__(52);
 /* tslint:enable:max-line-length */
 /**
  * Projects each source value to the same Observable which is merged multiple
@@ -15549,7 +15553,7 @@ exports.DistinctSubscriber = DistinctSubscriber;
 
 "use strict";
 
-var distinctUntilChanged_1 = __webpack_require__(48);
+var distinctUntilChanged_1 = __webpack_require__(47);
 /* tslint:enable:max-line-length */
 /**
  * Returns an Observable that emits all items emitted by the source Observable that are distinct by comparison from the previous item,
@@ -16375,7 +16379,7 @@ var FinallySubscriber = (function (_super) {
 
 "use strict";
 
-var find_1 = __webpack_require__(50);
+var find_1 = __webpack_require__(49);
 /**
  * Emits only the index of the first value emitted by the source Observable that
  * meets some condition.
@@ -16873,7 +16877,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Subscriber_1 = __webpack_require__(1);
-var noop_1 = __webpack_require__(69);
+var noop_1 = __webpack_require__(68);
 /**
  * Ignores all items emitted by the source Observable and only passes calls of `complete` or `error`.
  *
@@ -17599,7 +17603,7 @@ var PairwiseSubscriber = (function (_super) {
 "use strict";
 
 var not_1 = __webpack_require__(348);
-var filter_1 = __webpack_require__(49);
+var filter_1 = __webpack_require__(48);
 /**
  * Splits the source Observable into two, one with values that satisfy a
  * predicate, and another with values that don't satisfy the predicate.
@@ -17748,7 +17752,7 @@ exports.publish = publish;
 
 "use strict";
 
-var BehaviorSubject_1 = __webpack_require__(41);
+var BehaviorSubject_1 = __webpack_require__(40);
 var multicast_1 = __webpack_require__(14);
 /**
  * @param value
@@ -20088,7 +20092,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var async_1 = __webpack_require__(9);
 var isDate_1 = __webpack_require__(27);
 var Subscriber_1 = __webpack_require__(1);
-var TimeoutError_1 = __webpack_require__(63);
+var TimeoutError_1 = __webpack_require__(62);
 /**
  * @param {number} due
  * @param {Scheduler} [scheduler]
@@ -21668,8 +21672,8 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Observable_1 = __webpack_require__(0);
 var Subscription_1 = __webpack_require__(4);
-var SubscriptionLoggable_1 = __webpack_require__(62);
-var applyMixins_1 = __webpack_require__(65);
+var SubscriptionLoggable_1 = __webpack_require__(61);
+var applyMixins_1 = __webpack_require__(64);
 /**
  * We need this JSDoc comment for affecting ESDoc.
  * @ignore
@@ -21720,8 +21724,8 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Subject_1 = __webpack_require__(5);
 var Subscription_1 = __webpack_require__(4);
-var SubscriptionLoggable_1 = __webpack_require__(62);
-var applyMixins_1 = __webpack_require__(65);
+var SubscriptionLoggable_1 = __webpack_require__(61);
+var applyMixins_1 = __webpack_require__(64);
 /**
  * We need this JSDoc comment for affecting ESDoc.
  * @ignore
@@ -21776,8 +21780,8 @@ var Observable_1 = __webpack_require__(0);
 var Notification_1 = __webpack_require__(15);
 var ColdObservable_1 = __webpack_require__(338);
 var HotObservable_1 = __webpack_require__(339);
-var SubscriptionLog_1 = __webpack_require__(61);
-var VirtualTimeScheduler_1 = __webpack_require__(58);
+var SubscriptionLog_1 = __webpack_require__(60);
+var VirtualTimeScheduler_1 = __webpack_require__(57);
 var defaultMaxFrame = 750;
 var TestScheduler = (function (_super) {
     __extends(TestScheduler, _super);
@@ -22281,7 +22285,7 @@ var ImmediateDefinition = (function () {
 exports.ImmediateDefinition = ImmediateDefinition;
 exports.Immediate = new ImmediateDefinition(root_1.root);
 //# sourceMappingURL=Immediate.js.map
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).clearImmediate, __webpack_require__(40).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(39).clearImmediate, __webpack_require__(39).setImmediate))
 
 /***/ }),
 /* 344 */
@@ -22443,7 +22447,7 @@ exports.not = not;
 
 var Subscriber_1 = __webpack_require__(1);
 var rxSubscriber_1 = __webpack_require__(23);
-var Observer_1 = __webpack_require__(42);
+var Observer_1 = __webpack_require__(41);
 function toSubscriber(nextOrObserver, error, complete) {
     if (nextOrObserver) {
         if (nextOrObserver instanceof Subscriber_1.Subscriber) {
@@ -39425,7 +39429,7 @@ module.exports = __webpack_require__.p + "/placeholder.png";
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
-	return new Worker(__webpack_require__.p + "b8580fa7e0dcc392a096.worker.js");
+	return new Worker(__webpack_require__.p + "d4dd5943135afc2ca663.worker.js");
 };
 
 /***/ }),
@@ -39436,10 +39440,9 @@ module.exports = function() {
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(19);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_parse__ = __webpack_require__(39);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_stream__ = __webpack_require__(70);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_d3__ = __webpack_require__(352);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_d3___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_d3__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_stream__ = __webpack_require__(70);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_d3__ = __webpack_require__(352);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_d3___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_d3__);
 __webpack_require__(354);
 __webpack_require__(353);
 
@@ -39448,21 +39451,13 @@ __webpack_require__(353);
 
 
 
-let chunkSizeInput = document.getElementById('chunk-size');
-let statsOutput = document.getElementById('stats');
-let generateOutput = document.getElementById('export');
-let downloadOutput = document.getElementById('download');
+var MyWorker = __webpack_require__(356);
+var worker = new MyWorker();
+var workerMessages = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(worker, 'message')
+  .pluck('data')
+  .filter(d => d && d.command);
 
-let MyWorker = __webpack_require__(356);
-let worker1 = new MyWorker();
-let worker2 = new MyWorker();
-
-let worker1Messages = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(worker1, 'message').pluck('data').filter(d => d && d.command);
-let worker2Messages = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(worker2, 'message').pluck('data').filter(d => d && d.command);
-
-var fileInput = document.getElementById('file-upload');
-
-let fileStream = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(fileInput, 'change')
+var fileStream = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(document.getElementById('file-upload'), 'change')
   .pluck('target', 'files')
   .concatMap((arr, i) => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(arr));
 
@@ -39470,14 +39465,14 @@ function isCommand(_command) {
   return ({ command }) => command === _command;
 };
 
-function* blobToMessages(id, file, chunkSize) {
-  let port = worker1; // temp
+function* blobToMessages(id, file, chunkSize, includePhotos) {
+  let port = worker; // temp
   let command = 'blob';
-  let g = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["b" /* breakify */])(file, chunkSize);
+  let g = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__src_stream__["b" /* breakify */])(file, chunkSize);
   let { done, value } = g.next();
   while (!done) {
     let { pos, blob } = value;
-    port.postMessage({ command, blob, pos, id, done });
+    port.postMessage({ command, blob, pos, id, done, includePhotos });
     yield pos;
     ({ done, value } = g.next());
   }
@@ -39488,87 +39483,160 @@ function nextResponseValidator(pos, { lastPos}) {
   if (pos != lastPos) throw new Error('unexpected response');
 };
 
-let idToName = {};
-
+let chunkSizeInput = document.getElementById('chunk-size');
+let includePhotosCheckbox = document.getElementById('include-photos');
 fileStream
   .map((file, id) => {
     let size = file.size;
     let start = performance.now();
-    idToName[id] = file.name;
-  
-    let myWorkerMessages = worker1Messages.filter(({ id: _id }) => _id === id);
+    let myWorkerMessages = workerMessages.filter(({ id: _id }) => _id === id);
     let nextMessages = myWorkerMessages.filter(isCommand('blobNext'));
   
-    let processing = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["c" /* breakifyStream */])(blobToMessages(id, file, +chunkSizeInput.value), nextMessages, nextResponseValidator);
+    let chunkSize = +chunkSizeInput.value;
+    let includePhotos = includePhotosCheckbox.checked;
+
+    let processing = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__src_stream__["c" /* breakifyStream */])(blobToMessages(id, file, chunkSize, includePhotos), nextMessages, nextResponseValidator);
   
-    //let objects = myWorkerMessages.filter(isCommand('blobObjectsFound')).pluck('objects');
-    //let objectsCount = objects.pluck('length').scan((a, b) => a+b, 0).startWith(0);
-  
-    //return processing.withLatestFrom(objectsCount).map(([p, n]) => file.name + ' ' + formatPercentage(p/size) + ' ' + n + ' objects').finally(() => console.log('complete', ((Date.now() - start)/1000).toFixed(4)));
-    return processing.map(p => file.name + ' ' + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__src_stream__["d" /* formatPercentage */])(p/size) + ' ' + ((performance.now() - start)/1000).toFixed(4) + 's');
+    return processing.map(p => ({ file: file.name, pos: Math.min(p+chunkSize, size), size, time: performance.now() - start }));
   })
   .mergeAll(3)
-  .subscribe((p) => statsOutput.textContent = p, (err) => console.error(err));
+  .scan((a, b) => {
+    // keep the latest point of each file, might be slow
+    for (let i=0; i < a.length; i++) {
+      if (a[i].file == b.file) {
+        a[i] = b;
+        return a;
+      }
+    }
+    return a.concat(b);
+  }, [])
+  .map(v => updateImportProgress(v))
+  .subscribe(null, (err) => console.error(err));
+
+var imports = __WEBPACK_IMPORTED_MODULE_2_d3__["select"](document.getElementById('imports')).selectAll('.import');
+function updateImportProgress(data) {
+  imports = imports.data(data, ({ file }) => file);
+
+  let n = imports.enter().append('div').attr('class', 'import');
+  n.append('span').attr('class', 'name').text((d) => d.file);
+  n.append('progress').attr('value', 0);
+  n.append('span').attr('class', 'rate')
+
+  imports = n.merge(imports)
+    
+  imports.select('progress').attr('value', d => d.pos/d.size);
+  imports.select('.rate').text(d => __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__src_stream__["d" /* formatBytes */])(d.pos/d.time*1000) + '/s');
+}
 
 let lastId = 0;
-let objects = worker1Messages.filter(isCommand('blobObjectsFound')).map(({ objects, id: fileId }) => {
-  return objects.map(data => ({ data, id: lastId++, file: fileId }));
-}).concatMap(a => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].from(a)).share();
+let objects = workerMessages
+  .filter(isCommand('blobObjectsFound'))
+  .map(({ objects, id: fileId }) => objects.map(data => ({ data, id: lastId++, file: fileId })))
+  .scan((a, b) => a.concat(b), []);
 
-let nest = __WEBPACK_IMPORTED_MODULE_3_d3__["nest"]().key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('-')).join('\n') : 'uncategorized');
+let nest = __WEBPACK_IMPORTED_MODULE_2_d3__["nest"]()
+  .key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('\0')).join('\n') : 'uncategorized');
 
-let objectArray = objects.bufferTime(50).filter(a => a.length).scan((a, b) => a.concat(b), [])
-  
-objectArray.subscribe(objects => {
-  //let data = nest.entries(objects);
-
-  calculateGraph(objects);
-});
+objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 
 const cols = [
-  'External System ID',
-  'Load Date',
-  'First Name',
-  'Last Name',
-  'Middle Name',
-  'Roles',
-  'Status',
-  'Partition',
-  'Address',
-  'City',
-  'State',
-  'Zip',
-  'Phone',
-  'Work Phone',
-  'Email Address',
-  'Title',
-  'Department',
-  'Building',
-  'Embossed Number',
-  'Token Unique',
-  'Internal Number',
-  'Download',
-  'Token Status'
+  { name: 'External System ID', defaultValue: null },
+  { name: 'Load Date',          defaultValue: null },
+  { name: 'First Name',         defaultValue: null },
+  { name: 'Last Name',          defaultValue: null },
+  { name: 'Middle Name',        defaultValue: null },
+  { name: 'Roles',              defaultValue: null },
+  { name: 'Status',             defaultValue: '0' },
+  { name: 'Partition',          defaultValue: null },
+  { name: 'Address',            defaultValue: null },
+  { name: 'City',               defaultValue: null },
+  { name: 'State',              defaultValue: null },
+  { name: 'Zip',                defaultValue: null },
+  { name: 'Phone',              defaultValue: null },
+  { name: 'Work Phone',         defaultValue: null },
+  { name: 'Email Address',      defaultValue: null },
+  { name: 'Title',              defaultValue: null },
+  { name: 'Department',         defaultValue: null },
+  { name: 'Building',           defaultValue: null },
+  { name: 'Embossed Number',    defaultValue: null },
+  { name: 'Token Unique',       defaultValue: null },
+  { name: 'Internal Number',    defaultValue: null },
+  { name: 'Download',           defaultValue: 'f' },
+  { name: 'Token Status',       defaultValue: '2' }
 ];
 
-__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(generateOutput, 'click').withLatestFrom(objectArray)
+let exportSettings = __WEBPACK_IMPORTED_MODULE_2_d3__["select"](document.getElementById('export-settings'));
+let defaultRows = exportSettings.select('.cols').selectAll('.col:not(.header)').data(cols).enter().append('div').attr('class', 'col');
+defaultRows.append('span').attr('class', 'name').attr('title', d => d.name).text(d => d.name);
+defaultRows.append('input').attr('class', 'default').attr('required', '').attr('type', 'text').attr('value', d => d.defaultValue);
+
+function getDefaults() {
+  let obj = {};
+  defaultRows.select('.default').each(function(v) {
+    let val = this.value;
+    if (this.value != '') {
+      obj[v.name] = val;
+    }
+  });
+  return obj;
+}
+
+var generateOutput = document.getElementById('export');
+var outputFilenameInput = document.getElementById('output-filename');
+var downloadOutput = document.getElementById('download');
+var includeKeymapCheckbox = document.getElementById('include-keymap');
+__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(generateOutput, 'click').withLatestFrom(objects)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
+    let keyMap = {};
+    let defaults = getDefaults();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
+      keyMap[Roles] = key.split('\n').map(str => str.split('\0'));
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
-      return values.map(obj => Object.assign(obj.data, { Roles }));
+      return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
+    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].map(group => group[0])).join(',')).join('\r\n');
     let loadDate = new Date().toLocaleString();
     let text = arr.map((data, i) => {
-      return [i+1, loadDate, data['First Name'], data['Last Name'], data['Middle Name'], data['Roles'], data['Status'], null, null, null, null, null, null, null, null, data['Title'], data['Department'], data['Building'], data['Embossed Number'], data['Token Unique'], data['Internal Number'], data['Download'], data['Token Status']].map(v => v != null ? JSON.stringify(v) : '').join(',');
+      return [
+        i+1,
+        loadDate,
+        data['First Name'],
+        data['Last Name'],
+        data['Middle Name'],
+        data['Roles'],
+        data['Status'],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        data['Title'],
+        data['Department'],
+        data['Building'],
+        data['Embossed Number'],
+        data['Token Unique'],
+        data['Internal Number'],
+        data['Download'],
+        data['Token Status']
+      ].map(v => v !== undefined ? JSON.stringify(v) : '').join(',');
     }).join('\r\n');
-    let blob = new Blob([text], { type: 'text/plain' });
+    let blob;
+    if (includeKeymapCheckbox.checked) {
+      blob = new Blob([keyText, '\r\n'.repeat(2), text], { type: 'text/plain' });
+    } else {
+      blob = new Blob([text], { type: 'text/plain' });
+    }
     return URL.createObjectURL(blob);
   })
   .subscribe(output => {
     downloadOutput.disabled = false;
-    downloadOutput.setAttribute('download', 'dump.csv');
+    let fileName = outputFilenameInput.value || 'dump.csv';
+    downloadOutput.setAttribute('download', fileName);
     downloadOutput.setAttribute('href', output);
   });
 
@@ -39590,13 +39658,13 @@ withPhoto.take(1).expand(({ data, id: sentId }) => {
 }).subscribe();
 */
 
-var svg = __WEBPACK_IMPORTED_MODULE_3_d3__["select"](document.body.querySelector('svg'));
+var svg = __WEBPACK_IMPORTED_MODULE_2_d3__["select"](document.body.querySelector('svg'));
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
-var zoom = __WEBPACK_IMPORTED_MODULE_3_d3__["zoom"]().scaleExtent([1, 8]).on('zoom', zoomed);
+var zoom = __WEBPACK_IMPORTED_MODULE_2_d3__["zoom"]().scaleExtent([1, 8]).on('zoom', zoomed);
 
-var drag = __WEBPACK_IMPORTED_MODULE_3_d3__["drag"]()
+var drag = __WEBPACK_IMPORTED_MODULE_2_d3__["drag"]()
   //.subject((d) => ({ x: d.x - 300, y: d.y }))
   .on('start', dragstarted)
   .on('drag', dragged)
@@ -39606,7 +39674,7 @@ var drag = __WEBPACK_IMPORTED_MODULE_3_d3__["drag"]()
 svg.call(zoom);
 
 function zoomed() {
-  container.attr('transform', __WEBPACK_IMPORTED_MODULE_3_d3__["event"].transform);
+  container.attr('transform', __WEBPACK_IMPORTED_MODULE_2_d3__["event"].transform);
 }
 
 const circleRadius = 14;
@@ -39616,20 +39684,20 @@ function calcR(s) {
   return Math.sqrt(2*Math.sqrt(3)/Math.PI*s*Math.pow(circleRadius*1.3, 2));
 }
 
-var color = __WEBPACK_IMPORTED_MODULE_3_d3__["scaleOrdinal"](__WEBPACK_IMPORTED_MODULE_3_d3__["schemeCategory20"]);
+var color = __WEBPACK_IMPORTED_MODULE_2_d3__["scaleOrdinal"](__WEBPACK_IMPORTED_MODULE_2_d3__["schemeCategory20"]);
 
-var bodyForce = __WEBPACK_IMPORTED_MODULE_3_d3__["forceManyBody"]()
+var bodyForce = __WEBPACK_IMPORTED_MODULE_2_d3__["forceManyBody"]()
   .strength(-10.0)
   //.distanceMin(circleRadius)
 
-var gravityx = __WEBPACK_IMPORTED_MODULE_3_d3__["forceX"](width/2)
+var gravityx = __WEBPACK_IMPORTED_MODULE_2_d3__["forceX"](width/2)
   .strength(0.03)
-var gravityy = __WEBPACK_IMPORTED_MODULE_3_d3__["forceY"](height/2)
+var gravityy = __WEBPACK_IMPORTED_MODULE_2_d3__["forceY"](height/2)
   .strength(0.03)
 
-var collision = __WEBPACK_IMPORTED_MODULE_3_d3__["forceCollide"]().radius((d) => (d) => calcR(d.values.length));
+var collision = __WEBPACK_IMPORTED_MODULE_2_d3__["forceCollide"]().radius((d) => (d) => calcR(d.values.length));
 
-var simulation = __WEBPACK_IMPORTED_MODULE_3_d3__["forceSimulation"]()
+var simulation = __WEBPACK_IMPORTED_MODULE_2_d3__["forceSimulation"]()
   .force('collision', collision)
   .force('gravityx', gravityx)
   .force('gravityy', gravityy)
@@ -39647,35 +39715,10 @@ svg.append('clipPath')
 
 let container = svg.append('g');
 var node = container.append('g').selectAll('g');
-var table = __WEBPACK_IMPORTED_MODULE_3_d3__["select"](document.body.querySelector('.table')).selectAll('.row');
+var table = __WEBPACK_IMPORTED_MODULE_2_d3__["select"](document.body.querySelector('.table')).selectAll('.row');
 
-let test = Array.from(Array(500)).map((_, id) => ({ id, data: { name: `Node ${ id }` } }));
-
-/*
-var wells = container.append('g').selectAll('g');
-
-function calculateWells(data) {
-  console.log(data);
-  wells = wells.data(data, ({ key }) => key);
-
-  wells.exit().remove();
-
-  wells = wells.enter()
-    .append('g')
-    .call(drag)
-    .append('circle')
-    .attr('fill', (d, i) => color(i))
-    .attr('r', (d) => calcR(d.values.length))
-    .merge(wells);
-
-  simulation.nodes(data)
-  collision.initialize(simulation.nodes());
-  simulation.alpha(1.0).restart();
-  reset();
-}
-*/
-
-function calculateGraph(people, fileName) {
+let displayPhotosCheckbox = document.getElementById('display-photos');
+function calculateGraph(people) {
   node = node.data(people, ({ id }) => id);
   table = table.data(people, ({ id }) => id);
 
@@ -39683,7 +39726,7 @@ function calculateGraph(people, fileName) {
   table.exit().remove()
 
   let nnode = node.enter().append('g')
-    .attr('data-id', ({id}) => id)
+    .attr('id', ({id}) => `blob-${ id }`)
     .call(drag)
 
   nnode.append('circle')
@@ -39694,38 +39737,47 @@ function calculateGraph(people, fileName) {
     .attr('stroke', (d) => color(+d.file))
     .attr('stroke-width', borderRadius)
 
-  /*
-  nnode
-    .append('image')
-    .attr('x', -circleRadius+borderRadius)
-    .attr('y', -circleRadius+borderRadius)
-    .attr('height', (circleRadius-borderRadius)*2)
-    .attr('width', (circleRadius-borderRadius)*2)
-    .attr('clip-path', 'url(#circleClip)')
-    .attr('xlink:href', (d) => d.data.PhotoFileResized);
-  */
+  if (displayPhotosCheckbox.checked) {
+    nnode
+      .append('image')
+      .attr('x', -circleRadius+borderRadius)
+      .attr('y', -circleRadius+borderRadius)
+      .attr('height', (circleRadius-borderRadius)*2)
+      .attr('width', (circleRadius-borderRadius)*2)
+      .attr('clip-path', 'url(#circleClip)')
+      .attr('xlink:href', (d) => d.data.PhotoFile || 'assets/placeholder.png');
+  }
 
-  let ntable = table.enter().append('div').attr('class', 'row')
+  let ntable = table.enter().append('div').attr('data-id', ({ id }) => id);
+  ntable.append('input').attr('type', 'checkbox').attr('id',  ({ id }) => 'item-' + id).on('change', function(d) {
+    let checked = this.checked;
+    let n = node.filter(`#blob-${ d.id }`).attr('selected', checked).select('circle');
+    if (checked) {
+      n.attr('fill', 'white');
+    } else {
+      n.attr('fill', () => color(+d.file))
+    }
+  });
+  let tableRows = ntable.append('label').attr('for', ({ id }) => 'item-' + id)
     .on('mouseenter', function(d) {
-      __WEBPACK_IMPORTED_MODULE_3_d3__["select"](this).style('background-color', 'lightgrey');
+      //this.classList.add('hover');
       node.style('opacity', 0.4);
-      node.filter(`[data-id="${ d.id }"]`).style('opacity', 1.0);
+      node.filter(`#blob-${ d.id }`).style('opacity', 1.0);
     })
     .on('mouseleave', function(d) {
-      __WEBPACK_IMPORTED_MODULE_3_d3__["select"](this).style('background-color', 'white');
+      //this.classList.remove('hover');
+      __WEBPACK_IMPORTED_MODULE_2_d3__["select"](this).style('class', null);
       node.style('opacity', 1.0);
     })
-
-  let tableRows = ntable
-    .attr('data-id', ({id}) => id)
 
   tableRows
     .append('div')
     .attr('class', 'profile')
     .append('img')
-    .attr('src', (d) => d.data.PhotoFileResized || 'assets/placeholder.png');
+    .attr('src', (d) => d.data.PhotoFile || 'assets/placeholder.png');
 
-  tableRows.append('p')
+  tableRows
+    .append('p')
     .text(({ data }) => [data['First Name'], data['Middle Name'], data['Last Name']].filter(s => s).join(' '));
 
   node = nnode.merge(node);
@@ -39744,33 +39796,6 @@ function loadImage(d, element, callback) {
     callback(d.id)
   }, 1000);
 }
-
-//async function loadImage(obj, element, callback) {
-//  if (obj.data.PhotoFile) {
-//    let data = obj.data.PhotoFile;
-//
-//    let url = await shrinkCropPhoto(Observable.of(data)).toPromise();
-//    let pat = svg.select('defs').append('pattern');
-//
-//    let id = `image-${ obj.id }`;
-//    pat
-//      .attr('id', id)
-//      .attr('x', -circleRadius)
-//      .attr('y', -circleRadius)
-//      .attr('patternUnits', 'userSpaceOnUse')
-//      .attr('height', circleRadius*2)
-//      .attr('width', circleRadius*2)
-//      .append('image')
-//        .attr('x', '0')
-//        .attr('y', '0')
-//        .attr('width', circleRadius*2)
-//        .attr('height', circleRadius*2)
-//        .attr('xlink:href', url)
-//
-//    d3.select(element).attr('fill', `url(#${ id })`);
-//  }
-//  callback();
-//}
 
 function reset() {
   i = 0;
@@ -39794,33 +39819,57 @@ function dragstarted(d) {
     reset();
   }
   let n = this;
+  __WEBPACK_IMPORTED_MODULE_2_d3__["select"](this).attr('selected', true).select('circle').attr('fill', 'white');
   node.style('opacity', function(d) {
     return (n === this) ? 1.0 : 0.4;
   });
-  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'lightgrey').each(function() {
-    let p = this.parentElement.parentElement;
-    p.scrollTop = this.offsetTop - p.offsetHeight/3;
+  table.filter(`[data-id="${ d.id }"]`).each(function(e) {
+    let sel = __WEBPACK_IMPORTED_MODULE_2_d3__["select"](this);
+    if (e.id == d.id) {
+      sel.select('input').attr('checked', true);
+    }
+    sel.select('label').each(function() {
+      this.classList.add('hover');
+      let p = this.parentElement.parentElement.parentElement;
+      p.scrollTop = this.offsetTop - p.offsetHeight/3;
+    });
   });
-
   d.fx = d.x;
   d.fy = d.y;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = d.x;
+    e.fy = d.y;
+  })
+
 }
 
 
 function dragged(d) {
-  d.fx = event.x;
-  d.fy = event.y;
+  let { x, y } = event;
+  d.fx = x;
+  d.fy = y;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = x;
+    e.fy = y;
+  });
   reset();
 }
 
 
 function dragended(d) {
   if (!event.active) simulation.alphaTarget(1.0);
-  __WEBPACK_IMPORTED_MODULE_3_d3__["select"](this).style('opacity', 1.0);
+  __WEBPACK_IMPORTED_MODULE_2_d3__["select"](this).style('opacity', 1.0);
   d.fx = null;
   d.fy = null;
+  node.filter('[selected=true]').each(function(e) {
+    e.fx = null;
+    e.fy = null;
+  });
   node.style('opacity', 1.0);
-  table.filter(`[data-id="${ d.id }"]`).style('background-color', 'white');
+
+  table.filter(`[data-id="${ d.id }"]`).select('label').each(function() {
+    this.classList.remove('hover');
+  });
 }
 
 
