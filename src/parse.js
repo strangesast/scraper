@@ -125,7 +125,9 @@ function transformObjectKeys(object) {
         }
         break;
       case 'MiddleName':
-        obj[keyNames.middle] = object[key];
+        if (object[key] != '.' && object[key] != '') {
+          obj[keyNames.middle] = object[key];
+        }
         break;
       case 'JobTitle':
         obj[keyNames.title] = object[key];
@@ -135,10 +137,11 @@ function transformObjectKeys(object) {
         break;
       case 'State':
         let s = object[key];
+        let inactive = s === 'Disabled';
         //if (isNaN(s) || (s != 0 && s != 1)) {
         //  obj[keyNames.status] = obj[keyNames.tokenStatus] = s = null; // could be improved
         //} else {
-          obj[keyNames.status] = s;
+          obj[keyNames.status] = inactive ? 0 : 1;
           obj[keyNames.tokenStatus] = (s == 1 ? 1 : 2);
           obj[keyNames.download] = (s == 1 ? 't' : 'f');
         //}
@@ -286,6 +289,8 @@ export function* parseObject(includePhotos=false) {
           case 'CardNumber2':
           case 'Department':
           case 'FirstName':
+          case 'MiddleName':
+          case 'LastName':
           case 'JobTitle':
           case 'OfficeLocation':
           case 'FipsPersonId':

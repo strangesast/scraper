@@ -54,7 +54,7 @@ fileStream
   
     return processing.map(p => ({ file: file.name, pos: Math.min(p+chunkSize, size), size, time: performance.now() - start }));
   })
-  .mergeAll(3)
+  .mergeAll(100)
   .scan((a, b) => {
     // keep the latest point of each file, might be slow
     for (let i=0; i < a.length; i++) {
@@ -90,7 +90,9 @@ let objects = workerMessages
   .scan((a, b) => a.concat(b), []);
 
 let nest = d3.nest()
-  .key((d) => (d.data.AreaLinks && d.data.AreaLinks.length) ? d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') : 'uncategorized');
+  .key((d) => (d.data.AreaLinks && d.data.AreaLinks.length) ?
+      d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') :
+      'uncategorized');
 
 objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 
@@ -101,7 +103,7 @@ const cols = [
   { name: 'Last Name',          defaultValue: null },
   { name: 'Middle Name',        defaultValue: null },
   { name: 'Roles',              defaultValue: null },
-  { name: 'Status',             defaultValue: '0' },
+  { name: 'Status',             defaultValue: 1    },
   { name: 'Partition',          defaultValue: null },
   { name: 'Address',            defaultValue: null },
   { name: 'City',               defaultValue: null },
@@ -116,8 +118,8 @@ const cols = [
   { name: 'Embossed Number',    defaultValue: null },
   { name: 'Token Unique',       defaultValue: null },
   { name: 'Internal Number',    defaultValue: null },
-  { name: 'Download',           defaultValue: 'f' },
-  { name: 'Token Status',       defaultValue: '2' }
+  { name: 'Download',           defaultValue: 't'  },
+  { name: 'Token Status',       defaultValue: 1    }
 ];
 
 let exportSettings = d3.select(document.getElementById('export-settings'));
@@ -136,10 +138,37 @@ function getDefaults() {
   return obj;
 }
 
+const header = [
+  'External System ID',
+  'Load Date',
+  'First Name',
+  'Last Name',
+  'Middle Name',
+  'Roles',
+  'Status',
+  'Partition',
+  'Address',
+  'City',
+  'State',
+  'Zip',
+  'Phone',
+  'Work Phone',
+  'Email Address',
+  'Title',
+  'Department',
+  'Building',
+  'Embossed Number',
+  'Token Unique',
+  'Internal Number',
+  'Download',
+  'Token Status'
+];
+
 var generateOutput = document.getElementById('export');
 var outputFilenameInput = document.getElementById('output-filename');
 var downloadOutput = document.getElementById('download');
 var includeKeymapCheckbox = document.getElementById('include-keymap');
+var includeHeaderCheckbox = document.getElementById('include-header');
 Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
@@ -151,11 +180,9 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
-    console.log(keyMap);
     let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].join(','))).join('\r\n');
     let loadDate = new Date().toLocaleString();
-    let text = arr.map((data, i) => {
-      return [
+    let rows = arr.map((data, i) => [
         i+1,
         loadDate,
         data['First Name'],
@@ -179,8 +206,11 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
         data['Internal Number'],
         data['Download'],
         data['Token Status']
-      ].map(v => v !== undefined ? JSON.stringify(v) : '').join(',');
-    }).join('\r\n');
+      ].map(v => v === undefined ? '' : v));
+    if (includeHeaderCheckbox.checked) {
+      rows.unshift(header);
+    }
+    let text = rows.map(row => row.map(JSON.stringify).join(',')).join('\r\n');
     let blob;
     if (includeKeymapCheckbox.checked) {
       blob = new Blob([keyText, '\r\n'.repeat(2), text], { type: 'text/plain' });
@@ -344,13 +374,6 @@ function calculateGraph(people) {
   reset();
 
   return node;
-}
-
-function loadImage(d, element, callback) {
-  setTimeout(() => {
-    console.log('id', d.id);
-    callback(d.id)
-  }, 1000);
 }
 
 function reset() {
