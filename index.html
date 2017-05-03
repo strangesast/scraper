@@ -34,6 +34,10 @@
             <input id="include-keymap" type="checkbox" checked></input>
           </div>
           <div>
+            <label for="include-header">Include Header</label>
+            <input id="include-header" type="checkbox"></input>
+          </div>
+          <div>
             <label for="output-filename">Output Filename</label>
             <input id="output-filename" type="text" value="dump.csv">
           </div>
@@ -57,7 +61,7 @@
       <div id="imports" class="imports panel"></div>
       <div class="panel">
         <label class="button" for="file-upload">Add File</label>
-        <input type="file" id="file-upload"></input>
+        <input type="file" id="file-upload" multiple></input>
       </div>
       <span class="heading">Output</span>
       <div class="panel">
