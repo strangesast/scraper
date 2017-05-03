@@ -39596,7 +39596,7 @@ __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(generateOutput, 'c
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
-    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].map(group => group[0])).join(',')).join('\r\n');
+    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].map(group => group[0].split('\\').slice(-1)[0])).join(',')).join('\r\n');
     let loadDate = new Date().toLocaleString();
     let text = arr.map((data, i) => {
       return [
