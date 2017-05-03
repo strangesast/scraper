@@ -39535,7 +39535,7 @@ let objects = workerMessages
   .scan((a, b) => a.concat(b), []);
 
 let nest = __WEBPACK_IMPORTED_MODULE_2_d3__["nest"]()
-  .key((d) => d.data.AreaLinks ? d.data.AreaLinks.map(a => a.join('\0')).join('\n') : 'uncategorized');
+  .key((d) => (d.data.AreaLinks && d.data.AreaLinks.length) ? d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') : 'uncategorized');
 
 objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 
@@ -39592,11 +39592,12 @@ __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(generateOutput, 'c
     let defaults = getDefaults();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
-      keyMap[Roles] = key.split('\n').map(str => str.split('\0'));
+      keyMap[Roles] = key.split('\n');//.map(str => str.split('\0'));
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
-    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].map(group => group[0].split('\\').slice(-1)[0])).join(',')).join('\r\n');
+    console.log(keyMap);
+    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].join(','))).join('\r\n');
     let loadDate = new Date().toLocaleString();
     let text = arr.map((data, i) => {
       return [
