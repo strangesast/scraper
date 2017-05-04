@@ -103,6 +103,12 @@ input[type="file"] {
 .left .panel > input[type="checkbox"] {
   display: none;
 }
+.left .panel > input[type="checkbox"]:checked + label:before {
+  content: "-";
+}
+.left .panel > input[type="checkbox"]:not(:checked) ~ .body {
+  display: none;
+}
 .left .panel > label.toggle {
   display: block;
   user-select: none;
@@ -113,12 +119,6 @@ input[type="file"] {
   display: inline-block;
   width: 12px;
   text-align: center;
-}
-.left .panel input:checked + label:before {
-  content: "-";
-}
-.left .panel input:not(:checked) ~ .body {
-  display: none;
 }
 .left .panel .body {
   padding: 8px;
