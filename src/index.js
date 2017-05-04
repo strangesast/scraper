@@ -1,10 +1,15 @@
 require('../assets/placeholder.png');
 require('./index.less');
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, ReplaySubject } from 'rxjs/Rx';
 import { breakify, breakifyStream, formatBytes } from '../src/stream';
-import * as d3 from 'd3';
+const d3 = Object.assign(require('d3'), require('d3-scale-chromatic')); // whew
 
+var generateOutput = document.getElementById('export');
+var outputFilenameInput = document.getElementById('output-filename');
+var downloadOutput = document.getElementById('download');
+var includeKeymapCheckbox = document.getElementById('include-keymap');
+var includeHeaderCheckbox = document.getElementById('include-header');
 
 var MyWorker = require('worker-loader!./worker');
 var worker = new MyWorker();
@@ -94,7 +99,60 @@ let nest = d3.nest()
       d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') :
       'uncategorized');
 
-objects.map(calculateGraph).subscribe(null, console.error.bind(console));
+//objects.map(calculateGraph).subscribe(null, console.error.bind(console));
+var thresholdRangeInputElement = document.getElementById('threshold-range');
+var powerRangeElement = document.getElementById('power-range');
+var rangeOutput = document.getElementById('range-output');
+var rangePreview = document.getElementById('range-preview');
+var [rw, rh] = [rangePreview.width, rangePreview.height];
+var rangePreviewCtx = rangePreview.getContext('2d');
+function updateRangePreview(threshold, pow) {
+  rangePreviewCtx.clearRect(0, 0, rw, rh);
+  rangePreviewCtx.save();
+  rangePreviewCtx.translate(rw*0.1, rh*0.1);
+  rangePreviewCtx.scale(0.8, 0.8);
+  rangePreviewCtx.beginPath();
+  rangePreviewCtx.moveTo(0, rh*(1-threshold));
+  rangePreviewCtx.lineTo(rw, rh*(1-threshold));
+  rangePreviewCtx.stroke();
+  rangePreviewCtx.beginPath();
+  rangePreviewCtx.moveTo(rh, 0);
+  for (let x=0; x < rw; x+=rw/100) {
+    rangePreviewCtx.lineTo(rh*(1 - Math.pow(x/rw, pow)), x);
+  }
+  rangePreviewCtx.stroke();
+  rangePreviewCtx.restore();
+}
+
+var cval = new ReplaySubject(1);
+var rangeVals = Observable.combineLatest(
+  Observable.fromEvent(thresholdRangeInputElement, 'input').pluck('target', 'value').startWith(thresholdRangeInputElement.value),
+  Observable.fromEvent(powerRangeElement, 'input').pluck('target', 'value').startWith(powerRangeElement.value)
+);
+rangeVals.subscribe(cval);
+
+cval.subscribe(v => {
+  updateRangePreview(...v);
+  rangeOutput.textContent = v.join(', ');
+});
+
+objects.switchMap(arr => {
+  let data = nest.entries(arr);
+  let keymap = createKeyMap(data);
+  let { mat, vect } = correlation(keymap);
+  let t = transpose(mat);
+  let nmat = Array.from(Array(mat.length)).map(() => Array.from(Array(mat.length)));
+  return cval.map(([threshold, pow]) => {
+    for (let j=0; j<mat.length; j++) {
+      for (let i=0; i <mat.length; i++) {
+        let v = Math.pow((mat[j][i]+t[j][i])/2, pow);
+        nmat[j][i] = v > threshold ? v : 0;
+      }
+    }
+    drawCorrelationMat(vect, nmat, keymap);
+  });
+
+}).subscribe();
 
 const cols = [
   { name: 'External System ID', defaultValue: null },
@@ -164,23 +222,59 @@ const header = [
   'Token Status'
 ];
 
-var generateOutput = document.getElementById('export');
-var outputFilenameInput = document.getElementById('output-filename');
-var downloadOutput = document.getElementById('download');
-var includeKeymapCheckbox = document.getElementById('include-keymap');
-var includeHeaderCheckbox = document.getElementById('include-header');
+function sum(arr) {
+  return arr.reduce((a, b) => a+b, 0);
+}
+function transpose(array) {
+  return array[0].map(function(col, i) {
+    return array.map(function(row) {
+      return row[i];
+    });
+  });
+}
+function correlation(obj) {
+  let res = {};
+  let keys = Object.keys(obj);
+  keys.sort((a, b) => {
+    let [i, j] = [obj[a].length, obj[b].length];
+    return i > j ? 1 : i < j ? -1 : 0;
+  });
+  return {
+    vect: keys,
+    mat: keys.map(key => {
+      let arr = obj[key];
+      return keys.map(_key => {
+        if (_key == key) return 1;
+        let other = obj[_key];
+        if (arr.length == 0) return 0;
+        return arr.reduce((a, el) => a + (other.indexOf(el) > -1 ? 1 : 0), 0)/arr.length;
+      });
+    })
+  };
+}
+
+function createKeyMap(data) {
+  let ob = {};
+  for (let i=0; i<data.length; i++) {
+    let { key } = data[i];
+    ob[`Group${i+1}`] = key.split('\n');
+  }
+  return ob;
+}
+
 Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
   .map(([e, arr]) => {
     let data = nest.entries(arr);
-    let keyMap = {};
+    let keyMap = createKeyMap(data);
     let defaults = getDefaults();
     arr = data.map(({ key, values }, j) => {
       let Roles = 'Group' + j;
-      keyMap[Roles] = key.split('\n');//.map(str => str.split('\0'));
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
-    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].join(','))).join('\r\n');
+    //let { mat, vect } = correlation(keyMap);
+    //drawCorrelationMat(vect, mat);
+    let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].join(','))).concat('', '').join('\r\n');
     let loadDate = new Date().toLocaleString();
     let rows = arr.map((data, i) => [
         i+1,
@@ -210,10 +304,10 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
     if (includeHeaderCheckbox.checked) {
       rows.unshift(header);
     }
-    let text = rows.map(row => row.map(JSON.stringify).join(',')).join('\r\n');
+    let text = rows.map(row => row.map(JSON.stringify).join(',')).concat('').join('\r\n');
     let blob;
     if (includeKeymapCheckbox.checked) {
-      blob = new Blob([keyText, '\r\n'.repeat(2), text], { type: 'text/plain' });
+      blob = new Blob([keyText, text], { type: 'text/plain' });
     } else {
       blob = new Blob([text], { type: 'text/plain' });
     }
@@ -258,6 +352,72 @@ var drag = d3.drag()
 
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
 svg.call(zoom);
+
+var rects = svg.selectAll('rect')
+var lastob;
+var lastvect;
+var lastmat;
+var lastmap;
+function drawCorrelationMat(vect, mat, keymap) {
+  let width, height, padding;
+  let val = Math.min(...[svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2)))/mat.length;
+  width = height = val*5/6;
+  padding = val/6;
+
+  lastob = [];
+  lastvect = vect;
+  lastmat = mat;
+  lastmap = keymap;
+  for (let i=0; i<mat.length; i++) {
+    let row = mat[i];
+    for (let j=0; j<row.length; j++) {
+      let rect = row[j];
+      lastob.push({ x: j, y: i, value: rect });
+    }
+  }
+  rects = rects.data(lastob);
+  rects.exit().remove();
+  rects = rects.enter()
+    .append('rect')
+    .on('click', function(d) {
+      let arr = [];
+      let all = lastmat[d.y];
+      for (let i=0; i < all.length; i++) {
+        if (all[i] > 0) {
+          let key = lastvect[i];
+          arr.push([key, lastmap[key]]);
+        }
+      }
+      let unique = [];
+      for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
+        if (unique.indexOf(each) == -1) {
+          unique.push(each);
+        }
+      }
+      let out = arr.map(v => v.slice(0,1));
+      for (let j=0; j < unique.length; j++) {
+        let c = unique[j];
+        for (let k=0; k < out.length; k++) {
+          out[k].push(arr[k][1].indexOf(c) > -1 ? c : '');
+        }
+      }
+      let blob = new Blob([transpose(out).map(a => a.join(',')).join('\r\n')], { type: 'text/plain' });
+      let url = URL.createObjectURL(blob);
+      downloadOutput.setAttribute('download', 'selection.csv');
+      downloadOutput.setAttribute('href', url);
+      d3.event.stopPropagation();
+    })
+    .merge(rects)
+    .attr('x', (d) => d.x*(width+padding))
+    .attr('col', (d) => d.x)
+    .attr('y', (d) => d.y*(height+padding))
+    .attr('row', (d) => d.y)
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', (d) => d3.interpolateBlues(d.value))
+}
+
+
 
 function zoomed() {
   container.attr('transform', d3.event.transform);
