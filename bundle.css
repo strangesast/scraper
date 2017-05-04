@@ -193,11 +193,13 @@ input[type="file"] {
 }
 .right {
   flex-grow: 1;
-}
-.right div {
+  overflow: auto;
   position: relative;
 }
-.right div svg {
+.right canvas {
+  display: block;
+}
+.right svg {
   position: absolute;
   top: 0;
   bottom: 0;

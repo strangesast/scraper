@@ -9,8 +9,7 @@
       <div class="header">
         <span>DMP Import Tool</span>
       </div>
-      <span class="heading">Settings</span>
-      <div class="panel bordered">
+      <span class="heading">Settings</span> <div class="panel bordered">
         <input id="toggle0" type="checkbox">
         <label class="toggle" for="toggle0">Import Settings</label>
         <div class="body settings">
@@ -53,9 +52,22 @@
         <input id="toggle2" type="checkbox">
         <label class="toggle" for="toggle2">Display Settings</label>
         <div class="body settings">
-          <label for="display-photos">Display Photos</button>
-          <input type="checkbox" id="display-photos">
+          <div>
+            <label for="display-photos">Display Photos</button>
+            <input type="checkbox" id="display-photos">
+          </div>
+          <div>
+            <div>
+              <label for="threshold-range">Threshold</label><input id="threshold-range" type="range" min="0" max="1" step="0.01">
+            </div>
+            <div>
+              <label for="power-range">Power</label><input id="power-range" type="range" min="1" max="6" step="0.1">
+            </div>
+            <pre id="range-output"></pre>
+            <canvas id="range-preview" width="200" height="200"></canvas>
+          </div>
         </div>
+
       </div>
       <span class="heading">Imports</span>
       <div id="imports" class="imports panel"></div>
