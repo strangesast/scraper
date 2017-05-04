@@ -5,11 +5,12 @@ import { Observable, ReplaySubject } from 'rxjs/Rx';
 import { breakify, breakifyStream, formatBytes } from '../src/stream';
 const d3 = Object.assign(require('d3'), require('d3-scale-chromatic')); // whew
 
-var generateOutput = document.getElementById('export');
-var outputFilenameInput = document.getElementById('output-filename');
-var downloadOutput = document.getElementById('download');
-var includeKeymapCheckbox = document.getElementById('include-keymap');
-var includeHeaderCheckbox = document.getElementById('include-header');
+var getElementById = document.getElementById.bind(document);
+var generateOutput = getElementById('export');
+var outputFilenameInput = getElementById('output-filename');
+var downloadOutput = getElementById('download');
+var includeKeymapCheckbox = getElementById('include-keymap');
+var includeHeaderCheckbox = getElementById('include-header');
 
 var MyWorker = require('worker-loader!./worker');
 var worker = new MyWorker();
@@ -17,7 +18,7 @@ var workerMessages = Observable.fromEvent(worker, 'message')
   .pluck('data')
   .filter(d => d && d.command);
 
-var fileStream = Observable.fromEvent(document.getElementById('file-upload'), 'change')
+var fileStream = Observable.fromEvent(getElementById('file-upload'), 'change')
   .pluck('target', 'files')
   .concatMap((arr, i) => Observable.from(arr));
 
@@ -43,8 +44,8 @@ function nextResponseValidator(pos, { lastPos}) {
   if (pos != lastPos) throw new Error('unexpected response');
 };
 
-let chunkSizeInput = document.getElementById('chunk-size');
-let includePhotosCheckbox = document.getElementById('include-photos');
+let chunkSizeInput = getElementById('chunk-size');
+let includePhotosCheckbox = getElementById('include-photos');
 fileStream
   .map((file, id) => {
     let size = file.size;
@@ -73,7 +74,7 @@ fileStream
   .map(v => updateImportProgress(v))
   .subscribe(null, (err) => console.error(err));
 
-var imports = d3.select(document.getElementById('imports')).selectAll('.import');
+var imports = d3.select(getElementById('imports')).selectAll('.import');
 function updateImportProgress(data) {
   imports = imports.data(data, ({ file }) => file);
 
@@ -100,59 +101,99 @@ let nest = d3.nest()
       'uncategorized');
 
 //objects.map(calculateGraph).subscribe(null, console.error.bind(console));
-var thresholdRangeInputElement = document.getElementById('threshold-range');
-var powerRangeElement = document.getElementById('power-range');
-var rangeOutput = document.getElementById('range-output');
-var rangePreview = document.getElementById('range-preview');
-var [rw, rh] = [rangePreview.width, rangePreview.height];
-var rangePreviewCtx = rangePreview.getContext('2d');
-function updateRangePreview(threshold, pow) {
-  rangePreviewCtx.clearRect(0, 0, rw, rh);
-  rangePreviewCtx.save();
-  rangePreviewCtx.translate(rw*0.1, rh*0.1);
-  rangePreviewCtx.scale(0.8, 0.8);
-  rangePreviewCtx.beginPath();
-  rangePreviewCtx.moveTo(0, rh*(1-threshold));
-  rangePreviewCtx.lineTo(rw, rh*(1-threshold));
-  rangePreviewCtx.stroke();
-  rangePreviewCtx.beginPath();
-  rangePreviewCtx.moveTo(rh, 0);
-  for (let x=0; x < rw; x+=rw/100) {
-    rangePreviewCtx.lineTo(rh*(1 - Math.pow(x/rw, pow)), x);
+function setupRangePreview(canvas) {
+  var [rw, rh] = [canvas.width, canvas.height];
+  var ctx = canvas.getContext('2d');
+
+  return function ([threshold, pow]) {
+    ctx.clearRect(0, 0, rw, rh);
+    ctx.save();
+    ctx.translate(rw*0.1, rh*0.1);
+    ctx.scale(0.8, 0.8);
+    ctx.beginPath();
+    ctx.moveTo(0, rh*(1-threshold));
+    ctx.lineTo(rw, rh*(1-threshold));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rh, 0);
+    for (let x=0; x < rw; x+=rw/100) {
+      ctx.lineTo(rh*(1 - Math.pow(x/rw, pow)), x);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
-  rangePreviewCtx.stroke();
-  rangePreviewCtx.restore();
 }
 
-var cval = new ReplaySubject(1);
-var rangeVals = Observable.combineLatest(
-  Observable.fromEvent(thresholdRangeInputElement, 'input').pluck('target', 'value').startWith(thresholdRangeInputElement.value),
-  Observable.fromEvent(powerRangeElement, 'input').pluck('target', 'value').startWith(powerRangeElement.value)
-);
-rangeVals.subscribe(cval);
+function mergeUpdateInputEvents(elements, eventName='input') {
+  return Observable.merge(...elements.map(el => Observable.fromEvent(el, eventName)
+    .pluck('target', 'value')
+    .do(val => {
+      for (let _el of elements) if (_el !== el) _el.value = val;
+    }))).startWith(elements[0].value);
+}
 
-cval.subscribe(v => {
-  updateRangePreview(...v);
-  rangeOutput.textContent = v.join(', ');
+var currentRange = new ReplaySubject(1);
+var currentMethod = new ReplaySubject(1);
+
+const methodElements = ['percent-method', 'count-method'].map(getElementById);
+var methodVals = Observable.merge(...methodElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith('percent');
+
+const thresholdElements = ['threshold-range', 'threshold-numeric'].map(getElementById);
+const powerElements = ['power-range', 'power-numeric'].map(getElementById);
+
+var rangeVals = methodVals.switchMap(method => {
+  if (method === 'percent') {
+    thresholdElements.forEach(el => {
+      el.setAttribute('min', 0);
+      el.setAttribute('step', 0.01);
+      el.setAttribute('max', 1);
+      el.value = 0.5;
+    });
+    powerElements.forEach(el => {
+      el.disabled = false;
+      el.value = 5;
+    });
+  } else if (method === 'count') {
+    thresholdElements.forEach(el => {
+      el.setAttribute('min', 0);
+      el.setAttribute('step', 1);
+      el.setAttribute('max', 100);
+      el.value = 1
+    });
+    powerElements.forEach(el => {
+      el.disabled = true;
+    });
+  }
+  return Observable.combineLatest(
+    mergeUpdateInputEvents(thresholdElements),
+    mergeUpdateInputEvents(powerElements)
+  );
+});
+
+rangeVals.subscribe(currentRange);
+methodVals.subscribe(currentMethod);
+
+var updateRangePreview = setupRangePreview(getElementById('range-preview'));
+currentRange.map(updateRangePreview).subscribe();
+currentMethod.subscribe(method => {
+  if (method === 'count') {
+    scolor = function(v) {
+      return d3.interpolateBlues(Math.pow(Math.E, -v/2));
+    };
+  } else {
+    scolor = d3.interpolateBlues.bind(d3);
+  }
 });
 
 objects.switchMap(arr => {
   let data = nest.entries(arr);
   let keymap = createKeyMap(data);
-  let { mat, vect } = correlation(keymap);
-  let t = transpose(mat);
-  let nmat = Array.from(Array(mat.length)).map(() => Array.from(Array(mat.length)));
-  return cval.map(([threshold, pow]) => {
-    for (let j=0; j<mat.length; j++) {
-      for (let i=0; i <mat.length; i++) {
-        let v = Math.pow((mat[j][i]+t[j][i])/2, pow);
-        nmat[j][i] = v > threshold ? v : 0;
-      }
-    }
-    drawCorrelationMat(vect, nmat, keymap);
+  return Observable.combineLatest(currentMethod, currentRange).map(([method, [threshold, pow]]) => {
+    let { mat, vect } = correlation(method, keymap, threshold, pow);
+    drawCorrelationMat(vect, mat, keymap);
   });
 
-}).subscribe();
+}).subscribe(null, (err) => console.error(err));
 
 const cols = [
   { name: 'External System ID', defaultValue: null },
@@ -232,25 +273,57 @@ function transpose(array) {
     });
   });
 }
-function correlation(obj) {
+let cnt = 0;
+function correlation(method='percent', obj, threshold, pow=1) {
+  if (method === 'percent') {
+    threshold = threshold == undefined ? 0.1 : threshold;
+  } else if (method === 'count') {
+    threshold = threshold == undefined ? 1 : threshold;
+  } else {
+    throw new Error(`invalid method "${ method }"`);
+  }
   let res = {};
-  let keys = Object.keys(obj);
-  keys.sort((a, b) => {
+  let vect = Object.keys(obj);
+  vect.sort((a, b) => {
     let [i, j] = [obj[a].length, obj[b].length];
     return i > j ? 1 : i < j ? -1 : 0;
   });
-  return {
-    vect: keys,
-    mat: keys.map(key => {
-      let arr = obj[key];
-      return keys.map(_key => {
-        if (_key == key) return 1;
-        let other = obj[_key];
-        if (arr.length == 0) return 0;
-        return arr.reduce((a, el) => a + (other.indexOf(el) > -1 ? 1 : 0), 0)/arr.length;
-      });
-    })
-  };
+  let l = vect.length;
+  let mat = [];
+  for (let k=0; k<Math.pow(l, 2); k++) {
+    let [i, j] = [k%l, Math.floor(k/l)];
+    let value;
+    if (i == j) {
+      value = method === 'percent' ? 1 : 0;
+      mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+    } else if (i < j+1) {
+      let [k1, k2] = [vect[i], vect[j]];
+      let [a1, a2] = [obj[k1], obj[k2]];
+      if (method === 'percent') {
+        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+        value = (a1.length && a2.length) ? Math.pow((v/a1.length + v/a2.length)/2, pow) : 0;
+        if (value > threshold) {
+          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        }
+      } else if (method == 'apercent') {
+        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+        value = (a1.length && a2.length) ? Math.pow(v/a1.length, pow) : 0;
+        if (value > threshold) mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        value = (a1.length && a2.length) ? Math.pow(v/a2.length, pow) : 0;
+        if (value > threshold) mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+      } else {
+        let v1 = a1.reduce((acc, el) => acc + (a2.indexOf(el) == -1 ? 1 : 0), 0);
+        let v2 = a2.reduce((acc, el) => acc + (a1.indexOf(el) == -1 ? 1 : 0), 0);
+        value = Math.max(v1, v2);
+        if (value <= threshold && value > 0) {
+          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        }
+      }
+    }
+  }
+  return { vect, mat };
 }
 
 function createKeyMap(data) {
@@ -272,8 +345,6 @@ Observable.fromEvent(generateOutput, 'click').withLatestFrom(objects)
       //if (Array.isArray(Roles)) Roles = Roles.join('|');
       return values.map(obj => Object.assign({}, defaults, obj.data, { Roles }));
     }).reduce((a, b) => a.concat(b), []);
-    //let { mat, vect } = correlation(keyMap);
-    //drawCorrelationMat(vect, mat);
     let keyText = Object.keys(keyMap).map(name => [name].concat(keyMap[name].join(','))).concat('', '').join('\r\n');
     let loadDate = new Date().toLocaleString();
     let rows = arr.map((data, i) => [
@@ -354,39 +425,30 @@ var drag = d3.drag()
 svg.call(zoom);
 
 var rects = svg.selectAll('rect')
-var lastob;
 var lastvect;
 var lastmat;
 var lastmap;
+
+var scolor;
 function drawCorrelationMat(vect, mat, keymap) {
   let width, height, padding;
-  let val = Math.min(...[svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2)))/mat.length;
+  let val = Math.min(...[svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2)))/vect.length;
   width = height = val*5/6;
   padding = val/6;
 
-  lastob = [];
   lastvect = vect;
   lastmat = mat;
   lastmap = keymap;
-  for (let i=0; i<mat.length; i++) {
-    let row = mat[i];
-    for (let j=0; j<row.length; j++) {
-      let rect = row[j];
-      lastob.push({ x: j, y: i, value: rect });
-    }
-  }
-  rects = rects.data(lastob);
+  rects = rects.data(mat, ({ id }) => id);
   rects.exit().remove();
   rects = rects.enter()
     .append('rect')
     .on('click', function(d) {
       let arr = [];
-      let all = lastmat[d.y];
-      for (let i=0; i < all.length; i++) {
-        if (all[i] > 0) {
-          let key = lastvect[i];
-          arr.push([key, lastmap[key]]);
-        }
+      let all = lastmat.filter(({y}) => y == d.y);
+      for (let el of all) {
+        let key = lastvect[el.x];
+        arr.push([key, lastmap[key]]);
       }
       let unique = [];
       for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
@@ -407,14 +469,20 @@ function drawCorrelationMat(vect, mat, keymap) {
       downloadOutput.setAttribute('href', url);
       d3.event.stopPropagation();
     })
-    .merge(rects)
     .attr('x', (d) => d.x*(width+padding))
-    .attr('col', (d) => d.x)
     .attr('y', (d) => d.y*(height+padding))
-    .attr('row', (d) => d.y)
     .attr('width', width)
     .attr('height', height)
-    .attr('fill', (d) => d3.interpolateBlues(d.value))
+    .merge(rects);
+
+  rects.transition().duration(100)
+    //.attr('col', (d) => d.x)
+    //.attr('row', (d) => d.y)
+    .attr('x', (d) => d.x*(width+padding))
+    .attr('y', (d) => d.y*(height+padding))
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', (d) => scolor(d.value))
 }
 
 
@@ -430,7 +498,7 @@ function calcR(s) {
   return Math.sqrt(2*Math.sqrt(3)/Math.PI*s*Math.pow(circleRadius*1.3, 2));
 }
 
-var color = d3.scaleOrdinal(d3.schemeCategory20);
+var color = d3.interpolateBlues;
 
 var bodyForce = d3.forceManyBody()
   .strength(-10.0)
