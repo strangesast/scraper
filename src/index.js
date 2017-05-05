@@ -137,6 +137,7 @@ var currentRange = new ReplaySubject(1);
 var currentMethod = new ReplaySubject(1);
 var currentAveraged = new ReplaySubject(1);
 var currentDir = new ReplaySubject(1);
+var currentGraph = new ReplaySubject(1);
 
 const methodElements = ['percent-method', 'count-method'].map(getElementById);
 var methodVals = Observable.merge(...methodElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith(methodElements[0].value);
@@ -179,10 +180,14 @@ var rangeVals = methodVals.switchMap(method => {
   );
 });
 
+const graphElements = ['correlation-graph', 'category-graph'].map(getElementById);
+var graphVals = Observable.merge(...graphElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith(graphElements[0].value);
+
 rangeVals.subscribe(currentRange);
 methodVals.subscribe(currentMethod);
 averagedVals.subscribe(currentAveraged);
 dirVals.subscribe(currentDir);
+graphVals.subscribe(currentGraph);
 
 var updateRangePreview = setupRangePreview(getElementById('range-preview'));
 currentRange.map(updateRangePreview).subscribe();
@@ -201,13 +206,18 @@ objects.switchMap(arr => {
   let data = nest.entries(arr);
   let keymap = createKeyMap(data);
 
-  //return Observable.never();
-
   return Observable.combineLatest(currentMethod, currentRange, currentAveraged).switchMap(([method, [threshold, pow], averaged]) => {
     let { mat, vect } = correlation(method, keymap, threshold, pow, averaged);
-    drawCategories(vect, keymap);
-    return dirVals.map(dir => {
-      drawCorrelationMat(vect, mat, keymap, +dir);
+    return currentGraph.switchMap(graph => {
+      if (graph == 'correlation') {
+        return dirVals.map(dir => {
+          drawCorrelationMat(vect, mat, keymap, +dir);
+        });
+      } else if (graph == 'category') {
+        drawCategories(vect, keymap);
+
+        return Observable.never();
+      }
     });
   });
 
@@ -301,7 +311,7 @@ function correlation(method='percent', obj, threshold, pow=1, averaged=true) {
     throw new Error(`invalid method "${ method }"`);
   }
   let res = {};
-  let vect = Object.keys(obj);
+  let vect = Object.keys(obj).sort((a, b) => obj[a].length > obj[b].length ? 1 : obj[b].length > obj[a].length ? -1 : 0);
   vect.sort((a, b) => {
     let [i, j] = [obj[a].length, obj[b].length];
     return i > j ? 1 : i < j ? -1 : 0;
@@ -435,6 +445,7 @@ withPhoto.take(1).expand(({ data, id: sentId }) => {
 */
 
 var svg = d3.select(document.body.querySelector('svg'));
+var container = svg.append('g');
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
@@ -449,17 +460,16 @@ var drag = d3.drag()
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
 //svg.call(zoom);
 
-let cats = svg.append('g').attr('class', 'group').attr('id', 'categories').selectAll('.cat');
+var categories = container.selectAll('.cat');
 function drawCategories(vect, keymap) {
-  let keys = Object.keys(keymap).sort((a, b) => keymap[a].length > keymap[b].length ? 1 : keymap[b].length > keymap[a].length ? -1 : 0);
   let uniqueCounts = {};
-  for (let key of keys) {
+  for (let key of vect) {
     for (let col of keymap[key]) {
       uniqueCounts[col] = (uniqueCounts[col] || 0) + 1;
     }
   }
   let unique = Object.keys(uniqueCounts).sort((a, b) => uniqueCounts[a] > uniqueCounts[b] ? 1 : uniqueCounts[b] > uniqueCounts[a] ? -1 : 0);
-  let l1 = keys.length;
+  let l1 = vect.length;
   let l2 = unique.length;
 
   let width, height, hpadding, wpadding;
@@ -468,35 +478,41 @@ function drawCategories(vect, keymap) {
   let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
   [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
 
+  rects = rects.data([])
+  let old = rects.exit()
+  old.filter(d => d.x == d.y)
+    .transition().duration(500)
+    .attr('width', aw)
+    .transition().duration(500)
+    .attr('x', 0)
+  old.transition().duration(1000).remove();
 
-  //let width, height, wpadding, hpadding;
-  //let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
-  //let val = hbottom/l < 1 ? wh*(1-hbottom/l) : wh;
-  //width = ww/unique.length*5/6;
-  //wpadding = ww/unique.length/6;
-  //height = val/l*5/6;
-  //hpadding = val/l/6;
+  let data = vect.map(key => ({ key, values: keymap[key] }));
+  categories = categories.data(data, ({ key }) => key);
 
-  cats = cats.data(keys.map(key => ({ key, values: keymap[key] })), ({ key }) => key);
+  categories.exit().remove();
 
-  cats.exit().remove();
-
-  let ecats = cats.enter()
+  let ecats = categories.enter()
     .append('g')
     .attr('class', 'cat')
-    .attr('transform', (d, i) => 'translate(0, ' + i*(height+hpadding) + ')')
+    .attr('transform', (d, i) => `translate(0, ${ i*(height+hpadding) }) scale(1, 1)`)
 
-  let cols = cats.selectAll('.col').data(d => d.values);
+  categories = ecats.merge(categories);
+
+  let cols = categories.selectAll('.col').data(d => d.values);
   cols.exit().remove();
-  cols = cols.enter().append('rect').attr('class', 'col').merge(cols);
+  let ncols = cols.enter()
+    .append('rect')
+    .attr('class', 'col')
+
+  cols = ncols.merge(cols);
 
   cols.attr('x', (d) => unique.indexOf(d)*(width + wpadding))
     .attr('width', (d) => width)
     .attr('height', height)
 
-  cats = ecats.merge(cats);
 
-  cats
+  categories
     .on('mouseenter', function(d) {
       d3.select(this).selectAll('.col').attr('fill', 'blue');
     })
@@ -505,18 +521,18 @@ function drawCategories(vect, keymap) {
     });
 
 
-  cats.transition().duration(100)
-    .attr('transform', (d, i) => 'translate(0, ' + i*(height+hpadding) + ')')
+  categories.transition().duration(100)
+    .attr('transform', (d, i) => `translate(0, ${ i*(height+hpadding) })`)
     .select('rect')
     .attr('width', width)
     .attr('height', height)
    
+  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
 }
 
-let g = svg.append('g').attr('class', 'group').attr('id', 'correlation-mat')
-var rects = g.selectAll('.rel')
-var sums = g.selectAll('.sum')
-var labels = g.selectAll('.label')
+var rects = container.selectAll('.rel')
+var sums = container.selectAll('.sum')
+var labels = container.selectAll('.label')
 var lastvect;
 var lastmat;
 var lastmap;
@@ -566,6 +582,17 @@ function drawCorrelationMat(vect, mat, keymap, dir=0) {
   lastvect = vect;
   lastmat = mat;
   lastmap = keymap;
+
+  categories = categories.data([])
+  categories.exit()
+    .transition().duration(500)
+    .attr('transform', (d, i) => `translate(${ i*(width+wpadding)-aw/2 }, ${ i*(height+hpadding) })`)
+    .attr('opacity', 1.0)
+    .transition().duration(500)
+    .attr('transform', (d, i) => `translate(${ i*(width+wpadding) }, ${ i*(height+hpadding) }) scale(0, 1)`)
+    .attr('opacity', 0.0)
+    .remove();
+
   rects = rects.data(mat, ({ id }) => id);
   rects.exit().remove();
   rects = rects.enter()
@@ -609,6 +636,10 @@ function drawCorrelationMat(vect, mat, keymap, dir=0) {
     .attr('width', width)
     .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
 
+  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
+}
+
+function updateLabels(vect, height, width, hpadding, wpadding, l1, l2) {
   labels = labels.data(vect, (v) => v)
   labels.exit().remove();
 
@@ -667,7 +698,6 @@ svg.append('clipPath')
   .attr('cx', 0)
   .attr('cy', 0)
 
-let container = svg.append('g');
 var node = container.append('g').selectAll('g');
 var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
