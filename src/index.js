@@ -98,7 +98,8 @@ let objects = workerMessages
 let nest = d3.nest()
   .key((d) => (d.data.AreaLinks && d.data.AreaLinks.length) ?
       d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') :
-      'uncategorized');
+      'uncategorized')
+  .sortKeys((a, b) => a.length > b.length ? 1 : b.length > a.length ? -1 : 0)
 
 //objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 function setupRangePreview(canvas) {
@@ -157,7 +158,7 @@ var rangeVals = methodVals.switchMap(method => {
     thresholdElements.forEach(el => {
       el.setAttribute('min', 0);
       el.setAttribute('step', 1);
-      el.setAttribute('max', 100);
+      el.setAttribute('max', 20);
       el.value = 1
     });
     powerElements.forEach(el => {
@@ -424,17 +425,52 @@ var drag = d3.drag()
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
 svg.call(zoom);
 
-var rects = svg.selectAll('rect')
+var rects = svg.selectAll('.rel')
+var sums = svg.selectAll('.sum')
 var lastvect;
 var lastmat;
 var lastmap;
 
+function exportRow(d) {
+  let arr = [];
+  let all = lastmat.filter(({y}) => y == d.y);
+  for (let el of all) {
+    let key = lastvect[el.x];
+    arr.push([key, lastmap[key]]);
+  }
+  let unique = [];
+  for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
+    if (unique.indexOf(each) == -1) {
+      unique.push(each);
+    }
+  }
+  let out = arr.map(v => v.slice(0,1));
+  for (let j=0; j < unique.length; j++) {
+    let c = unique[j];
+    for (let k=0; k < out.length; k++) {
+      out[k].push(arr[k][1].indexOf(c) > -1 ? c : '');
+    }
+  }
+  let blob = new Blob([transpose(out).map(a => a.join(',')).join('\r\n')], { type: 'text/plain' });
+  let url = URL.createObjectURL(blob);
+  downloadOutput.setAttribute('download', 'selection.csv');
+  downloadOutput.setAttribute('href', url);
+  d3.event.stopPropagation();
+}
+
 var scolor;
+var hbottom = 4;
+var toast = false;
 function drawCorrelationMat(vect, mat, keymap) {
   let width, height, padding;
-  let val = Math.min(...[svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2)))/vect.length;
-  width = height = val*5/6;
-  padding = val/6;
+  let l = vect.length;
+  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+  let val = hbottom/l < 1 ? Math.min(ww, wh*(1-hbottom/l)) : ww;
+  width = height = val/l*5/6;
+  padding = val/l/6;
+
+  let pools = vect.map((name, i) => ({ id: name, value: mat.filter(v => v.x == i).reduce((a, b) => a + b.value, 0) }));
+  let max = pools.reduce((a, b) => b.value > a ? b.value : a, 0);
 
   lastvect = vect;
   lastmat = mat;
@@ -443,32 +479,8 @@ function drawCorrelationMat(vect, mat, keymap) {
   rects.exit().remove();
   rects = rects.enter()
     .append('rect')
-    .on('click', function(d) {
-      let arr = [];
-      let all = lastmat.filter(({y}) => y == d.y);
-      for (let el of all) {
-        let key = lastvect[el.x];
-        arr.push([key, lastmap[key]]);
-      }
-      let unique = [];
-      for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
-        if (unique.indexOf(each) == -1) {
-          unique.push(each);
-        }
-      }
-      let out = arr.map(v => v.slice(0,1));
-      for (let j=0; j < unique.length; j++) {
-        let c = unique[j];
-        for (let k=0; k < out.length; k++) {
-          out[k].push(arr[k][1].indexOf(c) > -1 ? c : '');
-        }
-      }
-      let blob = new Blob([transpose(out).map(a => a.join(',')).join('\r\n')], { type: 'text/plain' });
-      let url = URL.createObjectURL(blob);
-      downloadOutput.setAttribute('download', 'selection.csv');
-      downloadOutput.setAttribute('href', url);
-      d3.event.stopPropagation();
-    })
+    .attr('class', 'rel')
+    .on('click', exportRow)
     .attr('x', (d) => d.x*(width+padding))
     .attr('y', (d) => d.y*(height+padding))
     .attr('width', width)
@@ -476,13 +488,35 @@ function drawCorrelationMat(vect, mat, keymap) {
     .merge(rects);
 
   rects.transition().duration(100)
-    //.attr('col', (d) => d.x)
-    //.attr('row', (d) => d.y)
     .attr('x', (d) => d.x*(width+padding))
     .attr('y', (d) => d.y*(height+padding))
     .attr('width', width)
     .attr('height', height)
     .attr('fill', (d) => scolor(d.value))
+
+  sums = sums.data(pools, ({ id }) => id);
+  sums.exit().remove();
+
+  let esums = sums.enter()
+    .append('g')
+    .attr('class', 'sum')
+    .attr('transform', (d, i) => `translate(${i*(width+padding)}, ${(height+padding)*l})`)
+
+  esums.append('rect')
+    .attr('width', width)
+    .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
+    .attr('fill', 'black')
+
+  esums.append('title')
+    .text((d) => d.id)
+
+  sums = esums.merge(sums);
+
+  sums.transition().duration(100)
+    .attr('transform', (d, i) => `translate(${i*(width+padding)}, ${(height+padding)*l})`)
+    .select('rect')
+    .attr('width', width)
+    .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
 }
 
 
