@@ -64,6 +64,16 @@
               <label for="count-method">Count</label>
             </div>
             <div>
+              <input id="averaged" type="checkbox" checked>
+              <label>Average</label>
+            </div>
+            <div>
+              <input id="one-dir" value="0" name="direction" type="radio" checked>
+              <label for="one-dir">y > x</label>
+              <input id="two-dir" value="1" name="direction" type="radio">
+              <label for="two-dir">y < x</label>
+            </div>
+            <div>
               <label for="threshold-range">Threshold</label>
               <input id="threshold-range" type="range" min="0" max="1" value="0.5" step="0.01">
               <input id="threshold-numeric" type="number" min="0" max="1" value="0.5" step="0.01">

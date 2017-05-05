@@ -135,12 +135,20 @@ function mergeUpdateInputEvents(elements, eventName='input') {
 
 var currentRange = new ReplaySubject(1);
 var currentMethod = new ReplaySubject(1);
+var currentAveraged = new ReplaySubject(1);
+var currentDir = new ReplaySubject(1);
 
 const methodElements = ['percent-method', 'count-method'].map(getElementById);
-var methodVals = Observable.merge(...methodElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith('percent');
+var methodVals = Observable.merge(...methodElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith(methodElements[0].value);
+
+const averagedElement = getElementById('averaged');
+var averagedVals = Observable.fromEvent(averagedElement, 'change').map(() => averagedElement.checked).startWith(true);
 
 const thresholdElements = ['threshold-range', 'threshold-numeric'].map(getElementById);
 const powerElements = ['power-range', 'power-numeric'].map(getElementById);
+
+const dirElements = ['one-dir', 'two-dir'].map(getElementById);
+var dirVals = Observable.merge(...dirElements.map(element => Observable.fromEvent(element, 'change').pluck('target', 'value'))).startWith(dirElements[0].value);
 
 var rangeVals = methodVals.switchMap(method => {
   if (method === 'percent') {
@@ -173,6 +181,8 @@ var rangeVals = methodVals.switchMap(method => {
 
 rangeVals.subscribe(currentRange);
 methodVals.subscribe(currentMethod);
+averagedVals.subscribe(currentAveraged);
+dirVals.subscribe(currentDir);
 
 var updateRangePreview = setupRangePreview(getElementById('range-preview'));
 currentRange.map(updateRangePreview).subscribe();
@@ -186,12 +196,19 @@ currentMethod.subscribe(method => {
   }
 });
 
+var last = 0;
 objects.switchMap(arr => {
   let data = nest.entries(arr);
   let keymap = createKeyMap(data);
-  return Observable.combineLatest(currentMethod, currentRange).map(([method, [threshold, pow]]) => {
-    let { mat, vect } = correlation(method, keymap, threshold, pow);
-    drawCorrelationMat(vect, mat, keymap);
+
+  //return Observable.never();
+
+  return Observable.combineLatest(currentMethod, currentRange, currentAveraged).switchMap(([method, [threshold, pow], averaged]) => {
+    let { mat, vect } = correlation(method, keymap, threshold, pow, averaged);
+    drawCategories(vect, keymap);
+    return dirVals.map(dir => {
+      drawCorrelationMat(vect, mat, keymap, +dir);
+    });
   });
 
 }).subscribe(null, (err) => console.error(err));
@@ -275,7 +292,7 @@ function transpose(array) {
   });
 }
 let cnt = 0;
-function correlation(method='percent', obj, threshold, pow=1) {
+function correlation(method='percent', obj, threshold, pow=1, averaged=true) {
   if (method === 'percent') {
     threshold = threshold == undefined ? 0.1 : threshold;
   } else if (method === 'count') {
@@ -301,25 +318,32 @@ function correlation(method='percent', obj, threshold, pow=1) {
       let [k1, k2] = [vect[i], vect[j]];
       let [a1, a2] = [obj[k1], obj[k2]];
       if (method === 'percent') {
-        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
-        value = (a1.length && a2.length) ? Math.pow((v/a1.length + v/a2.length)/2, pow) : 0;
-        if (value > threshold) {
-          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        if (averaged) {
+          let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+          value = (a1.length && a2.length) ? Math.pow((v/a1.length + v/a2.length)/2, pow) : 0;
+          if (value > threshold) {
+            mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+            mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          }
+        } else {
+          let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+          value = (a1.length && a2.length) ? Math.pow(v/a1.length, pow) : 0;
+          if (value > threshold) mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          value = (a1.length && a2.length) ? Math.pow(v/a2.length, pow) : 0;
+          if (value > threshold) mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
         }
-      } else if (method == 'apercent') {
-        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
-        value = (a1.length && a2.length) ? Math.pow(v/a1.length, pow) : 0;
-        if (value > threshold) mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
-        value = (a1.length && a2.length) ? Math.pow(v/a2.length, pow) : 0;
-        if (value > threshold) mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-      } else {
+      } else { // method == 'count'
         let v1 = a1.reduce((acc, el) => acc + (a2.indexOf(el) == -1 ? 1 : 0), 0);
         let v2 = a2.reduce((acc, el) => acc + (a1.indexOf(el) == -1 ? 1 : 0), 0);
-        value = Math.max(v1, v2);
-        if (value <= threshold && value > 0) {
-          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        if (averaged) {
+          value = Math.max(v1, v2);
+          if (value <= threshold && value > 0) {
+            mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+            mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          }
+        } else {
+          if (v1 <= threshold) mat.push({ value: v1, id: vect[j]+vect[i], x: j, y: i });
+          if (v2 <= threshold) mat.push({ value: v2, id: vect[i]+vect[j], x: i, y: j });
         }
       }
     }
@@ -423,10 +447,76 @@ var drag = d3.drag()
   .on('end', dragended);
 
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
-svg.call(zoom);
+//svg.call(zoom);
 
-var rects = svg.selectAll('.rel')
-var sums = svg.selectAll('.sum')
+let cats = svg.append('g').attr('class', 'group').attr('id', 'categories').selectAll('.cat');
+function drawCategories(vect, keymap) {
+  let keys = Object.keys(keymap).sort((a, b) => keymap[a].length > keymap[b].length ? 1 : keymap[b].length > keymap[a].length ? -1 : 0);
+  let uniqueCounts = {};
+  for (let key of keys) {
+    for (let col of keymap[key]) {
+      uniqueCounts[col] = (uniqueCounts[col] || 0) + 1;
+    }
+  }
+  let unique = Object.keys(uniqueCounts).sort((a, b) => uniqueCounts[a] > uniqueCounts[b] ? 1 : uniqueCounts[b] > uniqueCounts[a] ? -1 : 0);
+  let l1 = keys.length;
+  let l2 = unique.length;
+
+  let width, height, hpadding, wpadding;
+  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
+  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
+  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
+
+
+  //let width, height, wpadding, hpadding;
+  //let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+  //let val = hbottom/l < 1 ? wh*(1-hbottom/l) : wh;
+  //width = ww/unique.length*5/6;
+  //wpadding = ww/unique.length/6;
+  //height = val/l*5/6;
+  //hpadding = val/l/6;
+
+  cats = cats.data(keys.map(key => ({ key, values: keymap[key] })), ({ key }) => key);
+
+  cats.exit().remove();
+
+  let ecats = cats.enter()
+    .append('g')
+    .attr('class', 'cat')
+    .attr('transform', (d, i) => 'translate(0, ' + i*(height+hpadding) + ')')
+
+  let cols = cats.selectAll('.col').data(d => d.values);
+  cols.exit().remove();
+  cols = cols.enter().append('rect').attr('class', 'col').merge(cols);
+
+  cols.attr('x', (d) => unique.indexOf(d)*(width + wpadding))
+    .attr('width', (d) => width)
+    .attr('height', height)
+
+  cats = ecats.merge(cats);
+
+  cats
+    .on('mouseenter', function(d) {
+      d3.select(this).selectAll('.col').attr('fill', 'blue');
+    })
+    .on('mouseleave', function(d) {
+      d3.select(this).selectAll('.col').attr('fill', 'black');
+    });
+
+
+  cats.transition().duration(100)
+    .attr('transform', (d, i) => 'translate(0, ' + i*(height+hpadding) + ')')
+    .select('rect')
+    .attr('width', width)
+    .attr('height', height)
+   
+}
+
+let g = svg.append('g').attr('class', 'group').attr('id', 'correlation-mat')
+var rects = g.selectAll('.rel')
+var sums = g.selectAll('.sum')
+var labels = g.selectAll('.label')
 var lastvect;
 var lastmat;
 var lastmap;
@@ -460,18 +550,19 @@ function exportRow(d) {
 
 var scolor;
 var hbottom = 4;
+var wright = 4;
 var toast = false;
-function drawCorrelationMat(vect, mat, keymap) {
-  let width, height, padding;
-  let l = vect.length;
+function drawCorrelationMat(vect, mat, keymap, dir=0) {
+  let width, height, hpadding, wpadding;
+  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
+  let l1, l2;
+  l1 = l2 = vect.length;
   let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
-  let val = hbottom/l < 1 ? Math.min(ww, wh*(1-hbottom/l)) : ww;
-  width = height = val/l*5/6;
-  padding = val/l/6;
+  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
+  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
 
-  let pools = vect.map((name, i) => ({ id: name, value: mat.filter(v => v.x == i).reduce((a, b) => a + b.value, 0) }));
+  let pools = vect.map((name, i) => ({ id: name, value: mat.filter(v => (dir ? (v.x > v.y) : (v.x < v.y)) && v.x == i).reduce((a, b) => a + b.value, 0) }));
   let max = pools.reduce((a, b) => b.value > a ? b.value : a, 0);
-
   lastvect = vect;
   lastmat = mat;
   lastmap = keymap;
@@ -481,15 +572,15 @@ function drawCorrelationMat(vect, mat, keymap) {
     .append('rect')
     .attr('class', 'rel')
     .on('click', exportRow)
-    .attr('x', (d) => d.x*(width+padding))
-    .attr('y', (d) => d.y*(height+padding))
+    .attr('x', (d) => d.x*(width+wpadding))
+    .attr('y', (d) => d.y*(height+hpadding))
     .attr('width', width)
     .attr('height', height)
     .merge(rects);
 
   rects.transition().duration(100)
-    .attr('x', (d) => d.x*(width+padding))
-    .attr('y', (d) => d.y*(height+padding))
+    .attr('x', (d) => d.x*(width+wpadding))
+    .attr('y', (d) => d.y*(height+hpadding))
     .attr('width', width)
     .attr('height', height)
     .attr('fill', (d) => scolor(d.value))
@@ -500,7 +591,7 @@ function drawCorrelationMat(vect, mat, keymap) {
   let esums = sums.enter()
     .append('g')
     .attr('class', 'sum')
-    .attr('transform', (d, i) => `translate(${i*(width+padding)}, ${(height+padding)*l})`)
+    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
 
   esums.append('rect')
     .attr('width', width)
@@ -513,10 +604,25 @@ function drawCorrelationMat(vect, mat, keymap) {
   sums = esums.merge(sums);
 
   sums.transition().duration(100)
-    .attr('transform', (d, i) => `translate(${i*(width+padding)}, ${(height+padding)*l})`)
+    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
     .select('rect')
     .attr('width', width)
     .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
+
+  labels = labels.data(vect, (v) => v)
+  labels.exit().remove();
+
+  let elabels = labels.enter()
+    .append('g')
+    .attr('class', 'label')
+
+  elabels.append('text').attr('x', 0).text((d) => d);
+
+  labels = elabels.merge(labels);
+
+  labels
+    .attr('transform', (d, i) => `translate(${l2*(width+wpadding)}, ${i*(height+hpadding)})`)
+    .select('text').attr('y', height-hpadding).attr('font-size', Math.min(height, 22));
 }
 
 
