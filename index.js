@@ -41840,7 +41840,8 @@ let objects = workerMessages
 let nest = d3.nest()
   .key((d) => (d.data.AreaLinks && d.data.AreaLinks.length) ?
       d.data.AreaLinks.map(a => a[0].split('\\').slice(-1)[0]).join('\n') :
-      'uncategorized');
+      'uncategorized')
+  .sortKeys((a, b) => a.length > b.length ? 1 : b.length > a.length ? -1 : 0)
 
 //objects.map(calculateGraph).subscribe(null, console.error.bind(console));
 function setupRangePreview(canvas) {
@@ -41876,12 +41877,21 @@ function mergeUpdateInputEvents(elements, eventName='input') {
 
 var currentRange = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["ReplaySubject"](1);
 var currentMethod = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["ReplaySubject"](1);
+var currentAveraged = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["ReplaySubject"](1);
+var currentDir = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["ReplaySubject"](1);
+var currentGraph = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["ReplaySubject"](1);
 
 const methodElements = ['percent-method', 'count-method'].map(getElementById);
-var methodVals = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].merge(...methodElements.map(element => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(element, 'change').pluck('target', 'value'))).startWith('percent');
+var methodVals = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].merge(...methodElements.map(element => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(element, 'change').pluck('target', 'value'))).startWith(methodElements[0].value);
+
+const averagedElement = getElementById('averaged');
+var averagedVals = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(averagedElement, 'change').map(() => averagedElement.checked).startWith(true);
 
 const thresholdElements = ['threshold-range', 'threshold-numeric'].map(getElementById);
 const powerElements = ['power-range', 'power-numeric'].map(getElementById);
+
+const dirElements = ['one-dir', 'two-dir'].map(getElementById);
+var dirVals = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].merge(...dirElements.map(element => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(element, 'change').pluck('target', 'value'))).startWith(dirElements[0].value);
 
 var rangeVals = methodVals.switchMap(method => {
   if (method === 'percent') {
@@ -41899,7 +41909,7 @@ var rangeVals = methodVals.switchMap(method => {
     thresholdElements.forEach(el => {
       el.setAttribute('min', 0);
       el.setAttribute('step', 1);
-      el.setAttribute('max', 100);
+      el.setAttribute('max', 20);
       el.value = 1
     });
     powerElements.forEach(el => {
@@ -41912,8 +41922,14 @@ var rangeVals = methodVals.switchMap(method => {
   );
 });
 
+const graphElements = ['correlation-graph', 'category-graph'].map(getElementById);
+var graphVals = __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].merge(...graphElements.map(element => __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].fromEvent(element, 'change').pluck('target', 'value'))).startWith(graphElements[0].value);
+
 rangeVals.subscribe(currentRange);
 methodVals.subscribe(currentMethod);
+averagedVals.subscribe(currentAveraged);
+dirVals.subscribe(currentDir);
+graphVals.subscribe(currentGraph);
 
 var updateRangePreview = setupRangePreview(getElementById('range-preview'));
 currentRange.map(updateRangePreview).subscribe();
@@ -41927,12 +41943,24 @@ currentMethod.subscribe(method => {
   }
 });
 
+var last = 0;
 objects.switchMap(arr => {
   let data = nest.entries(arr);
   let keymap = createKeyMap(data);
-  return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].combineLatest(currentMethod, currentRange).map(([method, [threshold, pow]]) => {
-    let { mat, vect } = correlation(method, keymap, threshold, pow);
-    drawCorrelationMat(vect, mat, keymap);
+
+  return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].combineLatest(currentMethod, currentRange, currentAveraged).switchMap(([method, [threshold, pow], averaged]) => {
+    let { mat, vect } = correlation(method, keymap, threshold, pow, averaged);
+    return currentGraph.switchMap(graph => {
+      if (graph == 'correlation') {
+        return dirVals.map(dir => {
+          drawCorrelationMat(vect, mat, keymap, +dir);
+        });
+      } else if (graph == 'category') {
+        drawCategories(vect, keymap);
+
+        return __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__["Observable"].never();
+      }
+    });
   });
 
 }).subscribe(null, (err) => console.error(err));
@@ -42016,7 +42044,7 @@ function transpose(array) {
   });
 }
 let cnt = 0;
-function correlation(method='percent', obj, threshold, pow=1) {
+function correlation(method='percent', obj, threshold, pow=1, averaged=true) {
   if (method === 'percent') {
     threshold = threshold == undefined ? 0.1 : threshold;
   } else if (method === 'count') {
@@ -42025,7 +42053,7 @@ function correlation(method='percent', obj, threshold, pow=1) {
     throw new Error(`invalid method "${ method }"`);
   }
   let res = {};
-  let vect = Object.keys(obj);
+  let vect = Object.keys(obj).sort((a, b) => obj[a].length > obj[b].length ? 1 : obj[b].length > obj[a].length ? -1 : 0);
   vect.sort((a, b) => {
     let [i, j] = [obj[a].length, obj[b].length];
     return i > j ? 1 : i < j ? -1 : 0;
@@ -42042,25 +42070,32 @@ function correlation(method='percent', obj, threshold, pow=1) {
       let [k1, k2] = [vect[i], vect[j]];
       let [a1, a2] = [obj[k1], obj[k2]];
       if (method === 'percent') {
-        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
-        value = (a1.length && a2.length) ? Math.pow((v/a1.length + v/a2.length)/2, pow) : 0;
-        if (value > threshold) {
-          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        if (averaged) {
+          let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+          value = (a1.length && a2.length) ? Math.pow((v/a1.length + v/a2.length)/2, pow) : 0;
+          if (value > threshold) {
+            mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+            mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          }
+        } else {
+          let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
+          value = (a1.length && a2.length) ? Math.pow(v/a1.length, pow) : 0;
+          if (value > threshold) mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          value = (a1.length && a2.length) ? Math.pow(v/a2.length, pow) : 0;
+          if (value > threshold) mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
         }
-      } else if (method == 'apercent') {
-        let v = a1.reduce((acc, el) => acc + (a2.indexOf(el) > -1 ? 1 : 0), 0);
-        value = (a1.length && a2.length) ? Math.pow(v/a1.length, pow) : 0;
-        if (value > threshold) mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
-        value = (a1.length && a2.length) ? Math.pow(v/a2.length, pow) : 0;
-        if (value > threshold) mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-      } else {
+      } else { // method == 'count'
         let v1 = a1.reduce((acc, el) => acc + (a2.indexOf(el) == -1 ? 1 : 0), 0);
         let v2 = a2.reduce((acc, el) => acc + (a1.indexOf(el) == -1 ? 1 : 0), 0);
-        value = Math.max(v1, v2);
-        if (value <= threshold && value > 0) {
-          mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
-          mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+        if (averaged) {
+          value = Math.max(v1, v2);
+          if (value <= threshold && value > 0) {
+            mat.push({ value, id: vect[i]+vect[j], x: i, y: j });
+            mat.push({ value, id: vect[j]+vect[i], x: j, y: i });
+          }
+        } else {
+          if (v1 <= threshold) mat.push({ value: v1, id: vect[j]+vect[i], x: j, y: i });
+          if (v2 <= threshold) mat.push({ value: v2, id: vect[i]+vect[j], x: i, y: j });
         }
       }
     }
@@ -42152,6 +42187,7 @@ withPhoto.take(1).expand(({ data, id: sentId }) => {
 */
 
 var svg = d3.select(document.body.querySelector('svg'));
+var container = svg.append('g');
 let [width, height] = ['width', 'height'].map(t => +svg.style(t).replace('px', ''));
 let min = 1000/Math.min(width, height);
 [width, height] = [width, height].map(v => v*min);
@@ -42164,67 +42200,202 @@ var drag = d3.drag()
   .on('end', dragended);
 
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
-svg.call(zoom);
+//svg.call(zoom);
 
-var rects = svg.selectAll('rect')
+var categories = container.selectAll('.cat');
+function drawCategories(vect, keymap) {
+  let uniqueCounts = {};
+  for (let key of vect) {
+    for (let col of keymap[key]) {
+      uniqueCounts[col] = (uniqueCounts[col] || 0) + 1;
+    }
+  }
+  let unique = Object.keys(uniqueCounts).sort((a, b) => uniqueCounts[a] > uniqueCounts[b] ? 1 : uniqueCounts[b] > uniqueCounts[a] ? -1 : 0);
+  let l1 = vect.length;
+  let l2 = unique.length;
+
+  let width, height, hpadding, wpadding;
+  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
+  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
+  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
+
+  rects = rects.data([])
+  let old = rects.exit()
+  old.filter(d => d.x == d.y)
+    .transition().duration(500)
+    .attr('width', aw)
+    .transition().duration(500)
+    .attr('x', 0)
+  old.transition().duration(1000).remove();
+
+  let data = vect.map(key => ({ key, values: keymap[key] }));
+  categories = categories.data(data, ({ key }) => key);
+
+  categories.exit().remove();
+
+  let ecats = categories.enter()
+    .append('g')
+    .attr('class', 'cat')
+    .attr('transform', (d, i) => `translate(0, ${ i*(height+hpadding) }) scale(1, 1)`)
+
+  categories = ecats.merge(categories);
+
+  let cols = categories.selectAll('.col').data(d => d.values);
+  cols.exit().remove();
+  let ncols = cols.enter()
+    .append('rect')
+    .attr('class', 'col')
+
+  cols = ncols.merge(cols);
+
+  cols.attr('x', (d) => unique.indexOf(d)*(width + wpadding))
+    .attr('width', (d) => width)
+    .attr('height', height)
+
+
+  categories
+    .on('mouseenter', function(d) {
+      d3.select(this).selectAll('.col').attr('fill', 'blue');
+    })
+    .on('mouseleave', function(d) {
+      d3.select(this).selectAll('.col').attr('fill', 'black');
+    });
+
+
+  categories.transition().duration(100)
+    .attr('transform', (d, i) => `translate(0, ${ i*(height+hpadding) })`)
+    .select('rect')
+    .attr('width', width)
+    .attr('height', height)
+   
+  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
+}
+
+var rects = container.selectAll('.rel')
+var sums = container.selectAll('.sum')
+var labels = container.selectAll('.label')
 var lastvect;
 var lastmat;
 var lastmap;
 
-var scolor;
-function drawCorrelationMat(vect, mat, keymap) {
-  let width, height, padding;
-  let val = Math.min(...[svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2)))/vect.length;
-  width = height = val*5/6;
-  padding = val/6;
+function exportRow(d) {
+  let arr = [];
+  let all = lastmat.filter(({y}) => y == d.y);
+  for (let el of all) {
+    let key = lastvect[el.x];
+    arr.push([key, lastmap[key]]);
+  }
+  let unique = [];
+  for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
+    if (unique.indexOf(each) == -1) {
+      unique.push(each);
+    }
+  }
+  let out = arr.map(v => v.slice(0,1));
+  for (let j=0; j < unique.length; j++) {
+    let c = unique[j];
+    for (let k=0; k < out.length; k++) {
+      out[k].push(arr[k][1].indexOf(c) > -1 ? c : '');
+    }
+  }
+  let blob = new Blob([transpose(out).map(a => a.join(',')).join('\r\n')], { type: 'text/plain' });
+  let url = URL.createObjectURL(blob);
+  downloadOutput.setAttribute('download', 'selection.csv');
+  downloadOutput.setAttribute('href', url);
+  d3.event.stopPropagation();
+}
 
+var scolor;
+var hbottom = 4;
+var wright = 4;
+var toast = false;
+function drawCorrelationMat(vect, mat, keymap, dir=0) {
+  let width, height, hpadding, wpadding;
+  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
+  let l1, l2;
+  l1 = l2 = vect.length;
+  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
+  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
+
+  let pools = vect.map((name, i) => ({ id: name, value: mat.filter(v => (dir ? (v.x > v.y) : (v.x < v.y)) && v.x == i).reduce((a, b) => a + b.value, 0) }));
+  let max = pools.reduce((a, b) => b.value > a ? b.value : a, 0);
   lastvect = vect;
   lastmat = mat;
   lastmap = keymap;
+
+  categories = categories.data([])
+  categories.exit()
+    .transition().duration(500)
+    .attr('transform', (d, i) => `translate(${ i*(width+wpadding)-aw/2 }, ${ i*(height+hpadding) })`)
+    .attr('opacity', 1.0)
+    .transition().duration(500)
+    .attr('transform', (d, i) => `translate(${ i*(width+wpadding) }, ${ i*(height+hpadding) }) scale(0, 1)`)
+    .attr('opacity', 0.0)
+    .remove();
+
   rects = rects.data(mat, ({ id }) => id);
   rects.exit().remove();
   rects = rects.enter()
     .append('rect')
-    .on('click', function(d) {
-      let arr = [];
-      let all = lastmat.filter(({y}) => y == d.y);
-      for (let el of all) {
-        let key = lastvect[el.x];
-        arr.push([key, lastmap[key]]);
-      }
-      let unique = [];
-      for (let each of arr.reduce((a, b) => a.concat(b[1]), [])) {
-        if (unique.indexOf(each) == -1) {
-          unique.push(each);
-        }
-      }
-      let out = arr.map(v => v.slice(0,1));
-      for (let j=0; j < unique.length; j++) {
-        let c = unique[j];
-        for (let k=0; k < out.length; k++) {
-          out[k].push(arr[k][1].indexOf(c) > -1 ? c : '');
-        }
-      }
-      let blob = new Blob([transpose(out).map(a => a.join(',')).join('\r\n')], { type: 'text/plain' });
-      let url = URL.createObjectURL(blob);
-      downloadOutput.setAttribute('download', 'selection.csv');
-      downloadOutput.setAttribute('href', url);
-      d3.event.stopPropagation();
-    })
-    .attr('x', (d) => d.x*(width+padding))
-    .attr('y', (d) => d.y*(height+padding))
+    .attr('class', 'rel')
+    .on('click', exportRow)
+    .attr('x', (d) => d.x*(width+wpadding))
+    .attr('y', (d) => d.y*(height+hpadding))
     .attr('width', width)
     .attr('height', height)
     .merge(rects);
 
   rects.transition().duration(100)
-    //.attr('col', (d) => d.x)
-    //.attr('row', (d) => d.y)
-    .attr('x', (d) => d.x*(width+padding))
-    .attr('y', (d) => d.y*(height+padding))
+    .attr('x', (d) => d.x*(width+wpadding))
+    .attr('y', (d) => d.y*(height+hpadding))
     .attr('width', width)
     .attr('height', height)
     .attr('fill', (d) => scolor(d.value))
+
+  sums = sums.data(pools, ({ id }) => id);
+  sums.exit().remove();
+
+  let esums = sums.enter()
+    .append('g')
+    .attr('class', 'sum')
+    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
+
+  esums.append('rect')
+    .attr('width', width)
+    .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
+    .attr('fill', 'black')
+
+  esums.append('title')
+    .text((d) => d.id)
+
+  sums = esums.merge(sums);
+
+  sums.transition().duration(100)
+    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
+    .select('rect')
+    .attr('width', width)
+    .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
+
+  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
+}
+
+function updateLabels(vect, height, width, hpadding, wpadding, l1, l2) {
+  labels = labels.data(vect, (v) => v)
+  labels.exit().remove();
+
+  let elabels = labels.enter()
+    .append('g')
+    .attr('class', 'label')
+
+  elabels.append('text').attr('x', 0).text((d) => d);
+
+  labels = elabels.merge(labels);
+
+  labels
+    .attr('transform', (d, i) => `translate(${l2*(width+wpadding)}, ${i*(height+hpadding)})`)
+    .select('text').attr('y', height-hpadding).attr('font-size', Math.min(height, 22));
 }
 
 
@@ -42269,7 +42440,6 @@ svg.append('clipPath')
   .attr('cx', 0)
   .attr('cy', 0)
 
-let container = svg.append('g');
 var node = container.append('g').selectAll('g');
 var table = d3.select(document.body.querySelector('.table')).selectAll('.row');
 
