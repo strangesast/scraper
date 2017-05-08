@@ -211,10 +211,16 @@ objects.switchMap(arr => {
     return currentGraph.switchMap(graph => {
       if (graph == 'correlation') {
         return dirVals.map(dir => {
-          drawCorrelationMat(vect, mat, keymap, +dir);
+          //drawCorrelationMat(vect, mat, keymap, +dir);
+          let sum = d3.nest().key((d) => d.x).rollup(v => v.filter(el => el.y > el.x).reduce((a, { value }) => a + value, 0)).entries(mat);
+          draw(mat, vect, vect, sum);
         });
       } else if (graph == 'category') {
-        drawCategories(vect, keymap);
+        let unique = getUniqueFrom(vect, keymap);
+        let mat2 = vect.reduce((a, group, i) => a.concat(keymap[group].map((name, j) => ({ value: { group, name }, x: unique.indexOf(name), y: i , id: group+name}))), []);
+        let sum = d3.nest().key((d) => d.x).rollup(v => v.length).entries(mat2);
+        draw(mat2, unique, vect, sum);
+        //drawCategories(vect, keymap);
 
         return Observable.never();
       }
@@ -459,6 +465,134 @@ var drag = d3.drag()
 
 //svg.attr('viewBox', `0 0 ${ width } ${ height }`);
 //svg.call(zoom);
+
+var labelsTopContainer = container.append('g').attr('class', 'labels-top');
+var labelsTop = labelsTopContainer.selectAll('.label');
+var labelsRightContainer = container.append('g').attr('class', 'labels-right');
+var labelsRight = labelsRightContainer.selectAll('.label');
+var labelsBottomContainer = container.append('g').attr('class', 'labels-bottom');
+var labelsBottom = labelsBottomContainer.selectAll('.label');
+var matrixContainer = container.append('g').attr('class', 'matrix');
+var matrix = matrixContainer.selectAll('.row');
+
+function draw(mat, xlabels, ylabels, sum) {
+  let [ww, wh] = ['width', 'height'].map(s => svg.style(s)).map(v => +v.substring(0, v.length-2));
+  let maxYLabel = ylabels.reduce((a, b) => b.length > a ? b.length : a, 0);
+  let maxXLabel = xlabels.reduce((a, b) => b.length > a ? b.length : a, 0);
+  let maxSum = sum.reduce((a, { value }) => value > a ? value : a, 0);
+
+  let charWidth = 14;
+  let charHeight = 14;
+
+  let maxSideWidth = 80;
+  let maxTopHeight = 80;
+  let xlabelwidth = maxYLabel*charWidth;
+
+  let sideWidth = Math.min(maxSideWidth, xlabelwidth);
+
+  let colWidth = (ww - sideWidth)/xlabels.length;
+  let xlabelheight = Math.sqrt(Math.pow(xlabelwidth, 2) - Math.pow(Math.min(colWidth, xlabelwidth), 2)) + charHeight;
+  let xlabeltheta = (-Math.acos(Math.min(colWidth, xlabelwidth)/xlabelwidth))*180/Math.PI;
+  let topHeight = Math.min(maxTopHeight, xlabelheight);
+  let bottomHeight = 100;
+  let rowHeight = (wh - topHeight - bottomHeight)/ylabels.length;
+
+  let t = d3.transition().duration(200);
+  labelsTop = labelsTop.data(xlabels, (d) => d);
+  labelsTop.exit()
+    .transition(t)
+    .attr('transform', (d, i) => `translate(${ -ww }, ${ topHeight })`)
+    .remove();
+
+  let elabelsTop = labelsTop.enter()
+    .append('g')
+    .attr('class', 'label');
+  elabelsTop.append('text');
+  labelsTop = elabelsTop.merge(labelsTop);
+  labelsTop
+    .attr('transform', (d, i) => `translate(${ ww + i*colWidth }, ${ topHeight })`)
+    .select('text')
+    .attr('font-size', Math.min(rowHeight, charHeight))
+    .attr('transform', `translate(0, ${ -charHeight }), rotate(${ xlabeltheta }), translate(0, ${ charHeight })`)
+    .text(d => d.length > 10 ? d.substring(0, 10) + '...' : d);
+
+  labelsTop
+    .transition(t)
+    .attr('transform', (d, i) => `translate(${ i*colWidth }, ${ topHeight })`)
+
+  labelsRightContainer.attr('transform', `translate(${ ww - sideWidth }, ${ topHeight })`);
+  labelsRight = labelsRight.data(ylabels, (d) => d);
+  labelsRight.exit()
+    .transition(t)
+    .attr('transform', (d, i) => `translate(sideWidth, ${ i*rowHeight })`)
+    .remove();
+
+  let elabelsRight = labelsRight.enter()
+    .append('g')
+    .attr('class', 'label')
+    .attr('transform', (d, i) => `translate(${ sideWidth }, ${ i*rowHeight })`)
+  elabelsRight.append('text')
+    .text((d) => d);
+  labelsRight = elabelsRight.merge(labelsRight);
+  labelsRight
+    .select('text')
+    .attr('font-size', Math.min(rowHeight, charHeight))
+    .attr('y', Math.min(rowHeight, charHeight));
+
+  labelsRight.transition(t)
+    .attr('transform', (d, i) => `translate(0, ${ i*rowHeight })`)
+
+  labelsBottomContainer.attr('transform', `translate(0, ${ wh - bottomHeight })`);
+  labelsBottom = labelsBottom.data(sum, ({ key }) => key);
+  labelsBottom.exit().remove();
+  let elabelsBottom = labelsBottom.enter().append('g')
+    .attr('transform', (d, i) => `translate(${ i*colWidth }, 0)`)
+    .attr('class', 'label')
+  elabelsBottom.append('rect')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('stroke', 'white')
+    .attr('stroke-width', 2)
+    .attr('fill', 'black');
+  labelsBottom = elabelsBottom.merge(labelsBottom);
+
+  labelsBottom
+    .transition().duration(100)
+    .attr('transform', (d, i) => `translate(${ i*colWidth }, 0)`)
+    .select('rect')
+    .attr('width', colWidth)
+    .attr('height', ({ value }) => (maxSum > 0 ? value / maxSum : 0)*bottomHeight)
+
+  let matRows = d3.nest().key(d => d.y).entries(mat);
+  matrixContainer.attr('transform', `translate(0, ${ topHeight })`);
+  matrix = matrix.data(matRows, ({ key }) => key);
+  matrix.exit().remove();
+  let ematrix = matrix.enter()
+    .append('g')
+    .attr('class', 'row')
+  ematrix.append('rect')
+    .attr('class', 'back')
+  matrix = ematrix.merge(matrix);
+  matrix.select('.back')
+    .attr('width', colWidth*xlabels.length)
+    .attr('height', rowHeight)
+  matrix.attr('transform', (d, i) => `translate(0, ${ i*rowHeight })`)
+
+  let cols = matrix.selectAll('.col').data(({ values }) => values, ({ id }) => id);
+  cols.exit().remove();
+  let ecols = cols.enter().append('g').attr('class', 'col');
+  ecols.append('rect')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 2)
+  ecols.append('title').text(d => d.id)
+  cols = ecols.merge(cols);
+  cols.attr('transform', (d) => `translate(${ d.x*colWidth }, 0)`)
+    .select('rect')
+    .attr('width', colWidth)
+    .attr('height', rowHeight)
+    .attr('fill', (d) => scolor(d.value))
+
+}
 
 var categories = container.selectAll('.cat');
 function drawCategories(vect, keymap) {
