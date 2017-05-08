@@ -992,16 +992,22 @@ exports.errorObject = { e: {} };
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global) {
-/**
- * window: browser in DOM main thread
- * self: browser in WebWorker
- * global: Node.js/other
- */
-exports.root = (typeof window == 'object' && window.window === window && window
-    || typeof self == 'object' && self.self === self && self
-    || typeof global == 'object' && global.global === global && global);
-if (!exports.root) {
-    throw new Error('RxJS could not find any global context (window, self, global)');
+if (typeof window == 'object' && window.window === window) {
+    exports.root = window;
+}
+else if (typeof self == 'object' && self.self === self) {
+    exports.root = self;
+}
+else if (typeof global == 'object' && global.global === global) {
+    exports.root = global;
+}
+else {
+    // Workaround Closure Compiler restriction: The body of a goog.module cannot use throw.
+    // This is needed when used with angular/tsickle which inserts a goog.module statement.
+    // Wrap in IIFE
+    (function () {
+        throw new Error('RxJS could not find any global context (window, self, global)');
+    })();
 }
 //# sourceMappingURL=root.js.map
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(32)))
@@ -1591,11 +1597,11 @@ var AsyncAction = (function (_super) {
     AsyncAction.prototype.recycleAsyncId = function (scheduler, id, delay) {
         if (delay === void 0) { delay = 0; }
         // If this action is rescheduled with the same delay time, don't clear the interval id.
-        if (delay !== null && this.delay === delay) {
+        if (delay !== null && this.delay === delay && this.pending === false) {
             return id;
         }
         // Otherwise, if the action's delay time is different from the current delay,
-        // clear the interval id
+        // or the action has been rescheduled before it's executed, clear the interval id
         return root_1.root.clearInterval(id) && undefined || undefined;
     };
     /**
@@ -2929,7 +2935,7 @@ var Subscriber_1 = __webpack_require__(1);
  * applies a projection to each value and emits that projection in the output
  * Observable.
  *
- * @example <caption>Map every every click to the clientX position of that click</caption>
+ * @example <caption>Map every click to the clientX position of that click</caption>
  * var clicks = Rx.Observable.fromEvent(document, 'click');
  * var positions = clicks.map(ev => ev.clientX);
  * positions.subscribe(x => console.log(x));
@@ -6052,9 +6058,7 @@ exports.noop = noop;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(Buffer) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
-/* harmony export (immutable) */ __webpack_exports__["c"] = parseStream;
+/* WEBPACK VAR INJECTION */(function(Buffer) {/* harmony export (immutable) */ __webpack_exports__["c"] = parseStream;
 /* unused harmony export parseLinesStream */
 /* harmony export (immutable) */ __webpack_exports__["a"] = breakLines;
 /* unused harmony export streamIntoGen */
@@ -6069,6 +6073,8 @@ exports.noop = noop;
 /* unused harmony export chunk */
 /* unused harmony export splitify */
 /* unused harmony export shrinkCropPhoto */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
 
 
 const headerRe = /^\'\s*(.+)?$/;
@@ -6521,10 +6527,6 @@ function shrinkCropPhoto(stream, minSize=1e4, maxDim=180) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__save__ = __webpack_require__(360);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__parse__ = __webpack_require__(73);
 /* unused harmony export setupBlobCommandStream */
 /* unused harmony export streamObjectsFromURL */
 /* harmony export (immutable) */ __webpack_exports__["a"] = readBlobStreamAsText;
@@ -6535,6 +6537,10 @@ function shrinkCropPhoto(stream, minSize=1e4, maxDim=180) {
 /* harmony export (immutable) */ __webpack_exports__["c"] = breakifyStream;
 /* harmony export (immutable) */ __webpack_exports__["d"] = formatBytes;
 /* unused harmony export formatPercentage */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Rx__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__save__ = __webpack_require__(360);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__parse__ = __webpack_require__(73);
 
 
 
@@ -15655,7 +15661,7 @@ var Subscriber_1 = __webpack_require__(1);
  * an Observable that is identical to the source.
  *
  * <span class="informal">Intercepts each emission on the source and runs a
- * function, but returns an output which is identical to the source.</span>
+ * function, but returns an output which is identical to the source as long as errors don't occur.</span>
  *
  * <img src="./img/do.png" width="100%">
  *
@@ -20339,7 +20345,7 @@ var root_1 = __webpack_require__(8);
  * @example
  * // Using normal ES2015
  * let source = Rx.Observable
- *   .just(42)
+ *   .of(42)
  *   .toPromise();
  *
  * source.then((value) => console.log('Value: %s', value));
@@ -20368,7 +20374,7 @@ var root_1 = __webpack_require__(8);
  *
  * // Setting via the method
  * let source = Rx.Observable
- *   .just(42)
+ *   .of(42)
  *   .toPromise(RSVP.Promise);
  *
  * source.then((value) => console.log('Value: %s', value));
@@ -22677,11 +22683,11 @@ exports.toSubscriber = toSubscriber;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs__);
 /* unused harmony export reset */
 /* harmony export (immutable) */ __webpack_exports__["a"] = init;
 /* harmony export (immutable) */ __webpack_exports__["b"] = save;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs__);
 
 
 function reset() {}

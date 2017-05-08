@@ -206,3 +206,12 @@ input[type="file"] {
   left: 0;
   right: 0;
 }
+.right svg .row > .back {
+  fill: white;
+}
+.right svg .row:hover > .back {
+  fill: lightgrey;
+}
+.right svg .row:hover > .col > rect {
+  stroke: 'grey';
+}
