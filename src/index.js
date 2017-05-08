@@ -462,30 +462,19 @@ var drag = d3.drag()
 
 var categories = container.selectAll('.cat');
 function drawCategories(vect, keymap) {
-  let uniqueCounts = {};
-  for (let key of vect) {
-    for (let col of keymap[key]) {
-      uniqueCounts[col] = (uniqueCounts[col] || 0) + 1;
-    }
-  }
-  let unique = Object.keys(uniqueCounts).sort((a, b) => uniqueCounts[a] > uniqueCounts[b] ? 1 : uniqueCounts[b] > uniqueCounts[a] ? -1 : 0);
-  let l1 = vect.length;
-  let l2 = unique.length;
+  let { cat: { h: height, w: width, y: hpadding, x: wpadding }, mat: { w: rwidth, x: rwpadding }, ah, aw, unique } = getVals(vect, keymap);
+  let th = height+hpadding;
+  let tw = width+wpadding;
 
-  let width, height, hpadding, wpadding;
-  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
-  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
-  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
-  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
-
-  rects = rects.data([])
-  let old = rects.exit()
-  old.filter(d => d.x == d.y)
+  matRows = matRows.data([])
+  matRows.exit()
+    .attr('opacity', 1)
     .transition().duration(500)
-    .attr('width', aw)
+    .attr('transform', (d) => `translate(${ -d.key*th/ah*aw }, ${ +d.key*th })`)
     .transition().duration(500)
-    .attr('x', 0)
-  old.transition().duration(1000).remove();
+    .attr('opacity', 0)
+    .attr('transform', ({ key }) => `scale(${ aw/rwidth }, 1), translate(${ -key*th/ah*aw }, ${ +key*th })`)
+    .remove();
 
   let data = vect.map(key => ({ key, values: keymap[key] }));
   categories = categories.data(data, ({ key }) => key);
@@ -507,10 +496,9 @@ function drawCategories(vect, keymap) {
 
   cols = ncols.merge(cols);
 
-  cols.attr('x', (d) => unique.indexOf(d)*(width + wpadding))
+  cols.attr('x', (d, i) => unique.indexOf(d)*(width + wpadding))
     .attr('width', (d) => width)
     .attr('height', height)
-
 
   categories
     .on('mouseenter', function(d) {
@@ -520,23 +508,20 @@ function drawCategories(vect, keymap) {
       d3.select(this).selectAll('.col').attr('fill', 'black');
     });
 
-
   categories.transition().duration(100)
     .attr('transform', (d, i) => `translate(0, ${ i*(height+hpadding) })`)
     .select('rect')
     .attr('width', width)
     .attr('height', height)
    
-  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
+  updateLabels(vect, aw, height, hpadding);
 }
 
-var rects = container.selectAll('.rel')
-var sums = container.selectAll('.sum')
+var matRows = container.selectAll('g.row')
+var matSums = container.selectAll('.sum')
 var labels = container.selectAll('.label')
-var lastvect;
-var lastmat;
-var lastmap;
 
+/*
 function exportRow(d) {
   let arr = [];
   let all = lastmat.filter(({y}) => y == d.y);
@@ -563,62 +548,103 @@ function exportRow(d) {
   downloadOutput.setAttribute('href', url);
   d3.event.stopPropagation();
 }
+*/
 
 var scolor;
 var hbottom = 4;
 var wright = 4;
 var toast = false;
-function drawCorrelationMat(vect, mat, keymap, dir=0) {
-  let width, height, hpadding, wpadding;
-  let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
-  let l1, l2;
-  l1 = l2 = vect.length;
-  let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
-  let [ah, aw] = [hbottom/l1 < 1 ? wh*(1-hbottom/l1) : wh, ww > maxlabellen ? ww - maxlabellen : ww];
-  [height, hpadding, width, wpadding] = [ah/l1*5/6, ah/l1/6, aw/l2*5/6, aw/l2/6];
 
-  let pools = vect.map((name, i) => ({ id: name, value: mat.filter(v => (dir ? (v.x > v.y) : (v.x < v.y)) && v.x == i).reduce((a, b) => a + b.value, 0) }));
-  let max = pools.reduce((a, b) => b.value > a ? b.value : a, 0);
-  lastvect = vect;
-  lastmat = mat;
-  lastmap = keymap;
+function getUniqueFrom(vect, keymap) {
+  // { [key] : [<string>, ... ], ... } => [<string>, ...]
+  let c = {}; // counts
+  for (let key of vect) {
+    for (let col of keymap[key]) {
+      c[col] = (c[col] || 0) + 1;
+    }
+  }
+  return Object.keys(c).sort((a, b) => c[a] > c[b] ? 1 : c[b] > c[a] ? -1 : 0);
+}
+
+
+function getVals(vect, keymap, pf=1/6) {
+ let [ww, wh] = [svg.style('width'), svg.style('height')].map(v => +v.substring(0, v.length-2));
+ let maxlabellen = vect.reduce((a, b) => b.length > a ? b.length : a, 0)*14;
+ let ah = hbottom/vect.length < 1 ? wh*(1-hbottom/vect.length) : wh;
+ let aw = ww > maxlabellen ? ww - maxlabellen : ww;
+ let cat = {}, mat = {};
+
+ let unique = getUniqueFrom(vect, keymap);
+
+ let l1 = vect.length
+   , l2 = unique.length;
+ let npf = 1 - pf;
+ [mat.h, mat.y, mat.w, mat.x] = [ah/l1*npf, ah/l1*pf, aw/l1*npf, aw/l1*pf];
+ [cat.h, cat.y, cat.w, cat.x] = [ah/l1*npf, ah/l1*pf, aw/l2*npf, aw/l2*pf];
+
+ return { cat, mat, ah, aw, unique };
+}
+
+function sumMat(mat, row, dir=0) {
+  return mat.filter(v => (dir ? (v.x > v.y) : (v.x < v.y)) && v.x == row).reduce((a, { value }) => a + value, 0);
+}
+
+function getPools(vect, mat, dir) {
+  let pools = vect.map((id, i) => ({ id, value: sumMat(mat, i, dir) }));
+  let max = pools.reduce((a, { value }) => value > a ? value : a, 0);
+  return { pools, max };
+}
+
+function drawCorrelationMat(vect, mat, keymap, dir=0) {
+  let { mat: { h: height, w: width, y: hpadding, x: wpadding }, ah, aw } = getVals(vect, keymap);
+  let th = height+hpadding;
+  let tw = width+wpadding;
+
+  let { pools, max } = getPools(vect, mat, dir);
+
+  let rows = d3.nest().key(d => d.y).entries(mat);
 
   categories = categories.data([])
   categories.exit()
     .transition().duration(500)
-    .attr('transform', (d, i) => `translate(${ i*(width+wpadding)-aw/2 }, ${ i*(height+hpadding) })`)
+    .attr('transform', (d, i) => `translate(${ i*tw-aw/2 }, ${ i*th })`)
     .attr('opacity', 1.0)
     .transition().duration(500)
-    .attr('transform', (d, i) => `translate(${ i*(width+wpadding) }, ${ i*(height+hpadding) }) scale(0, 1)`)
+    .attr('transform', (d, i) => `translate(${ i*tw }, ${ i*th }) scale(0, 1)`)
     .attr('opacity', 0.0)
     .remove();
 
-  rects = rects.data(mat, ({ id }) => id);
-  rects.exit().remove();
-  rects = rects.enter()
-    .append('rect')
-    .attr('class', 'rel')
-    .on('click', exportRow)
-    .attr('x', (d) => d.x*(width+wpadding))
-    .attr('y', (d) => d.y*(height+hpadding))
+  matRows = matRows.data(rows, d => d.key);
+  matRows.exit().remove();
+  matRows = matRows.enter()
+    .append('g')
+    .attr('class', 'row')
+    .attr('transform', ({ key }) => `translate(0, ${ +key*th })`)
+    .merge(matRows)
+
+  let rectGroup = matRows.selectAll('g.rect').data(d => d.values, ({ id }) => id);
+  rectGroup.exit().remove();
+  rectGroup.enter().append('g').attr('class', 'rect').append('rect')
+    .attr('x', (d) => d.x*tw)
     .attr('width', width)
     .attr('height', height)
-    .merge(rects);
+    .attr('fill', ({ value }) => scolor(value))
 
-  rects.transition().duration(100)
-    .attr('x', (d) => d.x*(width+wpadding))
-    .attr('y', (d) => d.y*(height+hpadding))
+  rectGroup.select('rect').transition().duration(100).attr('x', ({ x }) => x*tw)
     .attr('width', width)
     .attr('height', height)
-    .attr('fill', (d) => scolor(d.value))
+    .attr('fill', ({ value }) => scolor(value))
 
-  sums = sums.data(pools, ({ id }) => id);
-  sums.exit().remove();
+  matRows.transition().duration(100)
+    .attr('transform', ({ key }) => `translate(0, ${ +key*th })`)
 
-  let esums = sums.enter()
+  matSums = matSums.data(pools, ({ id }) => id);
+  matSums.exit().remove();
+
+  let esums = matSums.enter()
     .append('g')
     .attr('class', 'sum')
-    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
+    .attr('transform', (d, i) => `translate(${ i*tw }, ${ th*vect.length })`)
 
   esums.append('rect')
     .attr('width', width)
@@ -628,18 +654,18 @@ function drawCorrelationMat(vect, mat, keymap, dir=0) {
   esums.append('title')
     .text((d) => d.id)
 
-  sums = esums.merge(sums);
+  matSums = esums.merge(matSums);
 
-  sums.transition().duration(100)
-    .attr('transform', (d, i) => `translate(${i*(width+wpadding)}, ${(height+hpadding)*l1})`)
+  matSums.transition().duration(100)
+    .attr('transform', (d, i) => `translate(${ i*tw }, ${ th*vect.length})`)
     .select('rect')
     .attr('width', width)
     .attr('height', ({value}) => max ? height*hbottom*value/max : 0)
 
-  updateLabels(vect, height, width, hpadding, wpadding, l1, l2);
+  updateLabels(vect, aw, height, hpadding);
 }
 
-function updateLabels(vect, height, width, hpadding, wpadding, l1, l2) {
+function updateLabels(vect, x, h, p, maxHeight=22) {
   labels = labels.data(vect, (v) => v)
   labels.exit().remove();
 
@@ -652,8 +678,8 @@ function updateLabels(vect, height, width, hpadding, wpadding, l1, l2) {
   labels = elabels.merge(labels);
 
   labels
-    .attr('transform', (d, i) => `translate(${l2*(width+wpadding)}, ${i*(height+hpadding)})`)
-    .select('text').attr('y', height-hpadding).attr('font-size', Math.min(height, 22));
+    .attr('transform', (d, i) => `translate(${ x }, ${ i*(h+p) })`)
+    .select('text').attr('y', h).attr('font-size', Math.min(h, maxHeight));
 }
 
 
