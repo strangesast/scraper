@@ -15,9 +15,7 @@ body {
 @border-color: #e4e4e4;
 
 
-.button {
-  box-sizing: border-box;
-  display: inline-block;
+.button { box-sizing: border-box; display: inline-block;
   padding: 8px;
   border: 1px solid @border-color;
   transition: background-color 0.1s ease;
@@ -225,5 +223,17 @@ input[type="file"] {
     bottom: 0;
     left: 0;
     right: 0;
+
+    .row > .back {
+      fill: white;
+    }
+    .row:hover {
+      & > .back {
+        fill: lightgrey;
+      }
+      & > .col > rect {
+        stroke: 'grey';
+      }
+    }
   }
 }
