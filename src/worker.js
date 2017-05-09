@@ -1,8 +1,8 @@
-require('jimp');
+//require('jimp');
 import { Observable } from 'rxjs/Rx';
 import { readBlobStreamAsText, setupBlobCommandStream, streamObjectsFromURL, formatPercentage } from './stream';
 import { streamIntoGen, breakLines, breakStreamIntoFullLines, parseLinesStream, parseRoot } from './parse';
-const { Jimp } = self;
+//const { Jimp } = self;
 
 let commandStream = Observable.fromEvent(self, 'message')
   .pluck('data').filter(x => x && typeof x.command === 'string');
@@ -76,6 +76,7 @@ eachBlobCommands.flatMap(stream => {
 }, console.error.bind(console));
 
 
+/*
 commandStream.filter(({ command }) => command.startsWith('photo')).flatMap(({ photo, id }) => {
   let read = Observable.fromPromise(Jimp.read(photo));
   
@@ -94,3 +95,4 @@ commandStream.filter(({ command }) => command.startsWith('photo')).flatMap(({ ph
     });
   });
 }).subscribe(message => self.postMessage(message));
+*/
